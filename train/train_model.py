@@ -38,6 +38,7 @@ from train.settings import (
     MIN_DELTA,
     PATIENCE
 )
+from utils.constants import TILE_SIZE
 from utils.mixins import GPUSupportMixin
 
 
@@ -81,13 +82,15 @@ class Train(GPUSupportMixin):
             self.train_annotations,
             self.classes,
             transform_generator=transform_generator,
-            batch_size=self.batch_size
+            batch_size=self.batch_size,
+            image_min_side=TILE_SIZE
         )
 
         validation_generator = CSVGenerator(
             self.test_annotations,
             self.classes,
-            batch_size=self.batch_size
+            batch_size=self.batch_size,
+            image_min_side=TILE_SIZE
         )
 
         return train_generator, validation_generator

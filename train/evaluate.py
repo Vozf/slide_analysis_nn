@@ -1,11 +1,6 @@
-import csv
-import tensorflow as tf
 import keras
 from keras import backend as K
 import numpy as np
-from keras_retinanet.utils.image import read_image_bgr
-from web.prediction.predict import Predict
-from web.prediction.settings import BRG_IMAGE_FORMAT
 from keras_retinanet.models.resnet import custom_objects
 from keras_retinanet import losses
 from keras_retinanet.preprocessing.csv_generator import CSVGenerator

@@ -1,6 +1,8 @@
 from collections import defaultdict
 
 from functools import reduce
+
+from openslide.deepzoom import DeepZoomGenerator
 from shapely.geometry import Polygon, Point, box
 
 from openslide import open_slide
@@ -8,7 +10,9 @@ from openslide import open_slide
 from train.datasets_preparation.settings import (
     DEFAULT_CLASS_NAME,
     UNLABELED_IMAGES_DIR,
-    LABELED_IMAGES_DIR)
+    LABELED_IMAGES_DIR
+)
+from prediction.settings import PREDICT_TILES_DIR
 from utils.constants import TILE_SIZE, TILE_STEP, AREA_PROCESSING_MULTIPLIER
 import numpy as np
 from os.path import basename, join
@@ -29,20 +33,60 @@ class Slide:
             list(filter(lambda x: x.is_valid, [Polygon(bbox) for bbox in bounding_box_polygons]))
 
         dicts = list(map(self._process_polygon, shapely_bounding_box_polygons))
-        print('dicts')
 
         labeled_dict, unlabeled_dict = \
             reduce(lambda acc, dic: ({**acc[0], **dic[0]}, {**acc[1], **dic[1]}), dicts,
                    (defaultdict(list), defaultdict(list)))
-        print('bue')
 
         return labeled_dict, unlabeled_dict
 
     def cut_unlabeled_data(self, number, dir_path):
         pass
 
+    def deepzoom(self):
+        dz = DeepZoomGenerator(self.slide, tile_size=TILE_SIZE, overlap=0)
+
+        return dz
+
+        print('cutting')
+        i=0
+        siz = len(tiles_to_cut)
+
+        def printt():
+            nonlocal i
+            i+=1
+            print(i/siz)
+
+        tiles = map(lambda tile: [dz.get_tile(len(dz.level_tiles) - 1, tile), printt()][0],
+                    tiles_to_cut)
+
+        return list(tiles)
+
     def cut_for_predict(self):
-        pass
+        x = range(0, self.slide.dimensions[0], TILE_STEP)
+        y = range(0, self.slide.dimensions[1], TILE_STEP)
+        coords_to_cut = np.transpose([np.tile(x, len(y)), np.repeat(y, len(x))])[:10]
+
+        print('cutting')
+        i=0
+        siz = len(coords_to_cut)
+
+        def printt():
+            nonlocal i
+            i+=1
+            print(i/siz)
+
+        tile_boxes_to_cut = map(
+            lambda coords: (*coords, coords[0] + TILE_SIZE, coords[1] + TILE_SIZE), coords_to_cut)
+
+        cutted_boxes = map(lambda tile_box: [(self.cut_tile(*tile_box), tile_box), printt()][0], tile_boxes_to_cut)
+
+        saved_boxes = map(lambda cutted_image_and_box: [self._save_tile(*cutted_image_and_box, PREDICT_TILES_DIR), printt()][0], cutted_boxes)
+
+        # tile_paths = map(lambda tile_box: [self._save_tile(self.cut_tile(*tile_box), tile_box, PREDICT_TILES_DIR), printt()][0],
+        #     tile_boxes_to_cut)
+
+        return list(saved_boxes)
 
     def _process_polygon(self, polygon):
         print(self._get_bounding_box_for_polygon(polygon), self._get_processing_area_for_polygon(polygon))
@@ -83,7 +127,6 @@ class Slide:
                             class_name=class_name))
 
         return labeled_dict, unlabeled_dict
-
 
     def _get_processing_area_for_polygon(self, polygon):
         x1, y1, x2, y2 = self._get_bounding_box_for_polygon(polygon)
@@ -135,10 +178,5 @@ class Slide:
         tile.save(image_path, 'PNG')
         return image_path
 
-
-def cut_image_to_tiles(path, bounding_boxes=[], labeled_images_path='', unlabeled_images_path='',
-                       tile_size=TILE_SIZE, tile_step=TILE_STEP):
-    slide = open_slide(path).read_region((50800, 165600), 0,
-                                         (tile_size, tile_size)).save('1.png', 'PNG')
 
 # cut_image_to_tiles('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/slide_images/Tumor_015.tif')
