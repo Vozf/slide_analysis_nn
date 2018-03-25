@@ -1,18 +1,26 @@
+import cProfile
+
 import numpy as np
 import keras
 import time
 from openslide.deepzoom import DeepZoomGenerator
 
-from utils.constants import TILE_SIZE
+from utils.constants import TILE_SIZE, TILE_STEP
 from utils.slide import Slide
 
 
+
 class SlideTileGenerator(keras.utils.Sequence):
-    def __init__(self, slide_path, batch_size=32):
+    def __init__(self, slide_path, batch_size):
         self.batch_size = batch_size
         self.slide = Slide(slide_path)
         self.dz = DeepZoomSlide(self.slide)
-        self.addresses = self.dz.get_addresses()
+
+        # self.addresses = self.dz.get_addresses()
+        x = range(0, self.slide.slide.dimensions[0], TILE_STEP)
+        y = range(0, self.slide.slide.dimensions[1], TILE_STEP)
+        self.addresses = np.transpose([np.tile(x, len(y)), np.repeat(y, len(x))])
+
         self.times = [time.time()]
         self.diffs = []
 
@@ -21,17 +29,22 @@ class SlideTileGenerator(keras.utils.Sequence):
 
     def __getitem__(self, index):
         self.times.append(time.time())
-        self.diffs.append(self.times[-1] - self.times[-2])
-        print(self.diffs)
+
 
         print(str(index) + ':' + str(len(self)))
         addresses = self.addresses[index * self.batch_size:(index + 1) * self.batch_size]
 
         X = self.__data_generation(addresses)
+
+        self.diffs.append(time.time() - self.times[-1])
+        print(self.diffs)
+
         return X, np.zeros(len(X))
 
     def __data_generation(self, addresses):
-        return np.asarray(list(map(self.dz.get_tile, addresses)))
+        return np.asarray([np.asarray(self.slide.cut_tile(*add))[..., :3] for add in addresses])
+        # return np.asarray(list(map(lambda add: np.asarray(self.slide.cut_tile(*add)), addresses)))
+        # return np.asarray(list(map(self.dz.get_tile, addresses)))
 
 
 class DeepZoomSlide:
@@ -53,3 +66,6 @@ class DeepZoomSlide:
     def get_addresses(self):
         return self.addresses
 
+
+
+# cProfile.run('x = SlideTileGenerator("/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/slide_images/Tumor_001.tif", 256)\n[x[i] for i in range(20,40)]')

@@ -52,8 +52,9 @@ class Predict():
     def predict_slide(self, slide_path):
         slide_generator = SlideTileGenerator(slide_path, batch_size=BATCH_SIZE)
         print('predict')
-        _, _, detections = self.model.predict_generator(slide_generator)
-
+        start = time.time()
+        _, _, detections = self.model.predict_generator(slide_generator, steps=4)
+        print(time.time() - start, 'sup')
 
 
     def predict_tile(self, image):

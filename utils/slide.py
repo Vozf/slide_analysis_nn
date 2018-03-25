@@ -65,7 +65,7 @@ class Slide:
     def cut_for_predict(self):
         x = range(0, self.slide.dimensions[0], TILE_STEP)
         y = range(0, self.slide.dimensions[1], TILE_STEP)
-        coords_to_cut = np.transpose([np.tile(x, len(y)), np.repeat(y, len(x))])[:10]
+        coords_to_cut = np.transpose([np.tile(x, len(y)), np.repeat(y, len(x))])[20:40]
 
         print('cutting')
         i=0
@@ -80,6 +80,7 @@ class Slide:
             lambda coords: (*coords, coords[0] + TILE_SIZE, coords[1] + TILE_SIZE), coords_to_cut)
 
         cutted_boxes = map(lambda tile_box: [(self.cut_tile(*tile_box), tile_box), printt()][0], tile_boxes_to_cut)
+        return cutted_boxes
 
         saved_boxes = map(lambda cutted_image_and_box: [self._save_tile(*cutted_image_and_box, PREDICT_TILES_DIR), printt()][0], cutted_boxes)
 
