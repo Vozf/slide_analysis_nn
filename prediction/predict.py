@@ -21,7 +21,7 @@ from prediction.settings import (
     BRG_IMAGE_FORMAT,
 )
 from utils.result import Result
-from prediction.slide_predict_generator import PredictGenerator
+from prediction.predict_generator import PredictGenerator
 
 
 class Predict():
