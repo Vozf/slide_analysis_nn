@@ -1,18 +1,17 @@
 import glob
-import logging
 import os
 import time
 
 import cv2
 import keras
 # TODO: solve error with python3-tk library
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
 from prediction.errors import ModelError, ImageError, PredictionResultError
 from keras_retinanet.models.resnet import custom_objects
-from keras_retinanet.utils.image import preprocess_image, resize_image, read_image_bgr
+from keras_retinanet.utils.image import preprocess_image, resize_image
 
 from train.settings import (
     SNAPSHOTS_DIR,
@@ -22,8 +21,7 @@ from prediction.settings import (
     BRG_IMAGE_FORMAT,
 )
 from utils.result import Result
-from utils.slide import Slide
-from utils.slide_tile_generator import SlideTileGenerator
+from prediction.slide_predict_generator import PredictGenerator
 
 
 class Predict():
@@ -50,11 +48,16 @@ class Predict():
         self.session = tf.Session(config=config)
 
     def predict_slide(self, slide_path):
-        slide_generator = SlideTileGenerator(slide_path, batch_size=BATCH_SIZE)
+        slide_generator = PredictGenerator(slide_path, batch_size=BATCH_SIZE)
         print('predict')
         start = time.time()
-        _, _, detections = self.model.predict_generator(slide_generator, steps=4)
+        _, _, all_detections = self.model.predict_generator(slide_generator)
         print(time.time() - start, 'sup')
+
+        # return list(map(,detections))
+
+        return [Result(image=slide_gen[0][0], detections=detections) for slide_gen, detections in
+                zip(slide_generator, all_detections)]
 
 
     def predict_tile(self, image):
@@ -83,27 +86,32 @@ class Predict():
             raise PredictionResultError
 
         draw = predicted_result.image.copy()
-        if image_format == BRG_IMAGE_FORMAT:
-            draw = cv2.cvtColor(draw, cv2.COLOR_BGR2RGB)
+        # if image_format == BRG_IMAGE_FORMAT:
+        #     draw = cv2.cvtColor(draw, cv2.COLOR_BGR2RGB)
 
-        for idx, (label, score) in enumerate(zip(predicted_result.predicted_labels, predicted_result.scores)):
+        labels = np.argmax(predicted_result.detections[:, 4:], axis=1)
+        scores = predicted_result.detections[
+            np.arange(predicted_result.detections.shape[0]), 4 + labels]
+
+        for idx, (label, score) in enumerate(zip(labels, scores)):
             if score < 0.5:
                 continue
-            b = predicted_result.detections[0, idx, :4].astype(int)
+
+            b = predicted_result.detections[idx, :4].astype(int)
             cv2.rectangle(draw, (b[0], b[1]), (b[2], b[3]), (0, 0, 255), 3)
-            caption = "{} {:.3f}".format(predicted_result.predicted_labels[label], score)
+            caption = "{} {:.3f}".format(labels[label], score)
             cv2.putText(draw, caption, (b[0], b[1] - 10), cv2.FONT_HERSHEY_PLAIN, 1.5, (0, 0, 0), 3)
             cv2.putText(draw, caption, (b[0], b[1] - 10), cv2.FONT_HERSHEY_PLAIN, 1.5, (255, 255, 255), 2)
         return draw
 
     # TODO: solve error with python3-tk library
-    # @staticmethod
-    # def show(image):
-    #     if isinstance(image, np.ndarray):
-    #         plt.figure(figsize=(15, 15))
-    #         plt.axis('off')
-    #         plt.imshow(image)
-    #         plt.show()
+    @staticmethod
+    def show(image):
+        if isinstance(image, np.ndarray):
+            plt.figure(figsize=(15, 15))
+            plt.axis('off')
+            plt.imshow(image)
+            plt.show()
 
     @staticmethod
     def filter_models(filename):
@@ -113,12 +121,13 @@ class Predict():
 
 def main():
     predict_example = Predict()
-    predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/slide_images/Tumor_001.tif')
+    predicted_results = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/small_with_tumor_images/Tumor_001.tif_69913:131750:72271:134592.tif')
     # image = read_image_bgr('path/to/image')
     # predicted_result = predict_example.predict_tile(image)
+    final_images = [predict_example.visualise(predicted_result, BRG_IMAGE_FORMAT) for predicted_result in predicted_results]
     # final_image = predict_example.visualise(predicted_result, BRG_IMAGE_FORMAT)
     # TODO: solve error with python3-tk library
-    # Predict.show(final_image)
+    list(map(Predict.show, final_images))
 
 
 if __name__ == '__main__':

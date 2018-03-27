@@ -10,7 +10,8 @@ from openslide import open_slide
 from train.datasets_preparation.settings import (
     DEFAULT_CLASS_NAME,
     UNLABELED_IMAGES_DIR,
-    LABELED_IMAGES_DIR
+    LABELED_IMAGES_DIR,
+    SMALL_WITH_TUMOR_IMAGES_DIR
 )
 from prediction.settings import PREDICT_TILES_DIR
 from utils.constants import TILE_SIZE, TILE_STEP, AREA_PROCESSING_MULTIPLIER
@@ -62,32 +63,32 @@ class Slide:
 
         return list(tiles)
 
-    def cut_for_predict(self):
-        x = range(0, self.slide.dimensions[0], TILE_STEP)
-        y = range(0, self.slide.dimensions[1], TILE_STEP)
-        coords_to_cut = np.transpose([np.tile(x, len(y)), np.repeat(y, len(x))])[20:40]
-
-        print('cutting')
-        i=0
-        siz = len(coords_to_cut)
-
-        def printt():
-            nonlocal i
-            i+=1
-            print(i/siz)
-
-        tile_boxes_to_cut = map(
-            lambda coords: (*coords, coords[0] + TILE_SIZE, coords[1] + TILE_SIZE), coords_to_cut)
-
-        cutted_boxes = map(lambda tile_box: [(self.cut_tile(*tile_box), tile_box), printt()][0], tile_boxes_to_cut)
-        return cutted_boxes
-
-        saved_boxes = map(lambda cutted_image_and_box: [self._save_tile(*cutted_image_and_box, PREDICT_TILES_DIR), printt()][0], cutted_boxes)
-
-        # tile_paths = map(lambda tile_box: [self._save_tile(self.cut_tile(*tile_box), tile_box, PREDICT_TILES_DIR), printt()][0],
-        #     tile_boxes_to_cut)
-
-        return list(saved_boxes)
+    # def cut_for_predict(self):
+    #     x = range(0, self.slide.dimensions[0], TILE_STEP)
+    #     y = range(0, self.slide.dimensions[1], TILE_STEP)
+    #     coords_to_cut = np.transpose([np.tile(x, len(y)), np.repeat(y, len(x))])[20:40]
+    #
+    #     print('cutting')
+    #     i=0
+    #     siz = len(coords_to_cut)
+    #
+    #     def printt():
+    #         nonlocal i
+    #         i+=1
+    #         print(i/siz)
+    #
+    #     tile_boxes_to_cut = map(
+    #         lambda coords: (*coords, coords[0] + TILE_SIZE, coords[1] + TILE_SIZE), coords_to_cut)
+    #
+    #     cutted_boxes = map(lambda tile_box: [(self.cut_tile(*tile_box), tile_box), printt()][0], tile_boxes_to_cut)
+    #     return cutted_boxes
+    #
+    #     saved_boxes = map(lambda cutted_image_and_box: [self._save_tile(*cutted_image_and_box, PREDICT_TILES_DIR), printt()][0], cutted_boxes)
+    #
+    #     # tile_paths = map(lambda tile_box: [self._save_tile(self.cut_tile(*tile_box), tile_box, PREDICT_TILES_DIR), printt()][0],
+    #     #     tile_boxes_to_cut)
+    #
+    #     return list(saved_boxes)
 
     def _process_polygon(self, polygon):
         print(self._get_bounding_box_for_polygon(polygon), self._get_processing_area_for_polygon(polygon))
@@ -96,9 +97,10 @@ class Slide:
 
         x1pa, y1pa, x2pa, y2pa = self._get_processing_area_for_polygon(polygon)
 
+        self._save_tile((x1pa, y1pa, x2pa, y2pa), dir_path=SMALL_WITH_TUMOR_IMAGES_DIR, ext='tif')
+
         for x_coord in range(x1pa, x2pa, TILE_STEP):
             for y_coord in range(y1pa, y2pa, TILE_STEP):
-                tile = self.cut_tile(x_coord, y_coord)
                 tile_box = (x_coord, y_coord, x_coord + TILE_SIZE, y_coord + TILE_SIZE)
 
                 if self._is_intersected(polygon, tile_box=tile_box):
@@ -113,7 +115,7 @@ class Slide:
                     dictionary = unlabeled_dict
                     class_name = None
 
-                image_path = self._save_tile(tile, tile_box=tile_box, dir_path=dir)
+                image_path = self._save_tile(tile_box, dir_path=dir)
 
                 for bbox in bounding_boxes:
 
@@ -130,7 +132,7 @@ class Slide:
         return labeled_dict, unlabeled_dict
 
     def _get_processing_area_for_polygon(self, polygon):
-        x1, y1, x2, y2 = self._get_bounding_box_for_polygon(polygon)
+        return self._get_bounding_box_for_polygon(polygon)
 
         enlarge_area = int(AREA_PROCESSING_MULTIPLIER * TILE_SIZE)
 
@@ -145,7 +147,6 @@ class Slide:
         # x1, y1, x2, y2 = tile_box
         # points = [(x1, y1), (x2, y1), (x1, y2), (x2, y2)]
         # return any(map(lambda point_coords: polygon.contains(Point(*point_coords)), points))
-
 
     def _calculate_local_bounding_boxes(self, bbox, tile_box):
         poly = box(*tile_box).intersection(bbox)
@@ -168,15 +169,14 @@ class Slide:
             print('Unexpected type:',type(geo))
             return []
 
+    def _save_tile(self, tile_box, dir_path, ext='png'):
+        tile = self.cut_tile(tile_box[0], tile_box[1], tile_box[2] - tile_box[0],
+                             tile_box[3] - tile_box[1])
 
-
-
-
-    def _save_tile(self, tile, tile_box, dir_path):
-        image_name = "{0}_{1}:{2}:{3}:{4}.png".format(basename(self.slide_path), *tile_box)
+        image_name = "{0}_{1}:{2}:{3}:{4}.{5}".format(basename(self.slide_path), *tile_box, ext)
         image_path = join(dir_path, image_name)
 
-        tile.save(image_path, 'PNG')
+        tile.save(image_path)
         return image_path
 
 

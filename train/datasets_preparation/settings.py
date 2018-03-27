@@ -16,6 +16,7 @@ UNLABELED_IMAGES_TEST_PERCENT = 1 - UNLABELED_IMAGES_TRAIN_PERCENT
 UNLABELED_IMAGES_DIR = os.path.join(PROJECT_PATH, 'datasets', 'source', 'unlabeled_images')
 
 SLIDE_IMAGES_DIR = os.path.join(PROJECT_PATH, 'datasets', 'source', 'slide_images')
+SMALL_WITH_TUMOR_IMAGES_DIR = os.path.join(PROJECT_PATH, 'datasets', 'source', 'small_with_tumor_images')
 
 
 TEST_DATASET_FILE_PATH = os.path.join(PROJECT_PATH, 'datasets', 'prepared_datasets', 'test.csv')

@@ -9,8 +9,7 @@ from utils.constants import TILE_SIZE, TILE_STEP
 from utils.slide import Slide
 
 
-
-class SlideTileGenerator(keras.utils.Sequence):
+class PredictGenerator(keras.utils.Sequence):
     def __init__(self, slide_path, batch_size):
         self.batch_size = batch_size
         self.slide = Slide(slide_path)
@@ -20,6 +19,7 @@ class SlideTileGenerator(keras.utils.Sequence):
         x = range(0, self.slide.slide.dimensions[0], TILE_STEP)
         y = range(0, self.slide.slide.dimensions[1], TILE_STEP)
         self.addresses = np.transpose([np.tile(x, len(y)), np.repeat(y, len(x))])
+        print(self.addresses)
 
         self.times = [time.time()]
         self.diffs = []
@@ -28,6 +28,9 @@ class SlideTileGenerator(keras.utils.Sequence):
         return int(np.floor(len(self.dz) / self.batch_size))
 
     def __getitem__(self, index):
+        if isinstance(index, slice):
+            return [self[i] for i in range(index.start, index.stop, index.step)]
+
         self.times.append(time.time())
 
 
@@ -43,8 +46,6 @@ class SlideTileGenerator(keras.utils.Sequence):
 
     def __data_generation(self, addresses):
         return np.asarray([np.asarray(self.slide.cut_tile(*add))[..., :3] for add in addresses])
-        # return np.asarray(list(map(lambda add: np.asarray(self.slide.cut_tile(*add)), addresses)))
-        # return np.asarray(list(map(self.dz.get_tile, addresses)))
 
 
 class DeepZoomSlide:
