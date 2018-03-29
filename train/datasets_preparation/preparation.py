@@ -21,10 +21,8 @@ from train.datasets_preparation.settings import (
     LABELED_IMAGES_DIR,
     AUGMENTATION_PERCENT,
     TRAIN_DATASET_FILE_PATH,
-    LABELED_IMAGES_TRAIN_PERCENT,
     TEST_DATASET_FILE_PATH,
-    IMAGES_WITHOUT_BRAND_PERCENT,
-    UNLABELED_IMAGES_TRAIN_PERCENT,
+    TRAIN_DATASET_PERCENT,
     AUGMENTED_IMAGES_DIR,
     UNLABELED_IMAGES_DIR,
     DEFAULT_CLASS_NAME,
@@ -64,12 +62,13 @@ class DatasetPreparation(object):
         polygon_images = map(self._prepare_polygons,
                              glob.iglob(os.path.join(SLIDE_IMAGES_DIR, '*xml')))
 
-        dicts = map(self._process_slide, filter(lambda x: x, polygon_images))
+        dicts = list(map(self._process_slide, filter(lambda x: x, polygon_images)))
 
-        labeled_dict, unlabeled_dict = \
-            reduce(lambda acc, dic: ({**acc[0], **dic[0]}, {**acc[1], **dic[1]}), dicts, ({}, {}))
+        return dicts
 
-        return labeled_dict, unlabeled_dict
+    def _unite_array_of_dictionaries(self, list_of_dict_pairs):
+        return reduce(lambda acc, dic: ({**dic[0], **dic[1], **acc}),
+                      list_of_dict_pairs, {})
 
 
     def _prepare_polygons(self, xml_file_path):
@@ -234,42 +233,50 @@ class DatasetPreparation(object):
                 cv2.imwrite(augmented_image_path, augmented_image)
 
     def populate_prepared_datasets(self):
-        test_prepared = defaultdict(list)
         test_finished = defaultdict(list)
-        train_prepared = defaultdict(list)
         train_finished = defaultdict(list)
         # images_to_augment = defaultdict(list)
 
-        self.labeled_images, self.unlabeled_images = self._prepare_labeled_slides()
+        dicts = self._prepare_labeled_slides()
+
+        random.shuffle(dicts)
+
+        number_of_train_tumors = int(len(dicts) * TRAIN_DATASET_PERCENT)
+
+        train_tumors = dicts[:number_of_train_tumors]
+        val_tumors = dicts[number_of_train_tumors:]
+
+        train_prepared = self._unite_array_of_dictionaries(train_tumors)
+        val_prepared = self._unite_array_of_dictionaries(val_tumors)
 
         # load images
         # self._load_labeled_images()
-        number_of_labeled_images = len(self.labeled_images.keys())
+        # number_of_labeled_images = len(self.labeled_images.keys())
         # self._load_unlabeled_images(int(number_of_labeled_images * IMAGES_WITHOUT_BRAND_PERCENT))
 
         # shuffle images
-        shuffled_unlabeled_images = list(self.unlabeled_images.keys())
-        random.shuffle(shuffled_unlabeled_images)
-        shuffled_labeled_images = list(self.labeled_images.keys())
-        random.shuffle(shuffled_labeled_images)
+        # shuffled_unlabeled_images = list(self.unlabeled_images.keys())
+        # random.shuffle(shuffled_unlabeled_images)
+        # shuffled_labeled_images = list(self.labeled_images.keys())
+        # random.shuffle(shuffled_labeled_images)
 
         # count images for sets and augmentation
-        number_of_unlabeled_images = len(self.unlabeled_images.keys())
-        number_of_unlabeled_images_to_train = int(UNLABELED_IMAGES_TRAIN_PERCENT * number_of_unlabeled_images)
+        # number_of_unlabeled_images = len(self.unlabeled_images.keys())
+        # number_of_unlabeled_images_to_train = int(UNLABELED_IMAGES_TRAIN_PERCENT * number_of_unlabeled_images)
         # number_of_images_to_augment = int(AUGMENTATION_PERCENT * number_of_labeled_images)
-        number_of_labeled_images_to_train = int(LABELED_IMAGES_TRAIN_PERCENT * number_of_labeled_images)
+        # number_of_labeled_images_to_train = int(LABELED_IMAGES_TRAIN_PERCENT * number_of_labeled_images)
 
-        if number_of_unlabeled_images < int(number_of_labeled_images * IMAGES_WITHOUT_BRAND_PERCENT):
-            self.log.warning(
-                'Amount of unlabeled images: {0}, less then necessary'.format(number_of_unlabeled_images)
-            )
+        # if number_of_unlabeled_images < int(number_of_labeled_images * IMAGES_WITHOUT_BRAND_PERCENT):
+        #     self.log.warning(
+        #         'Amount of unlabeled images: {0}, less then necessary'.format(number_of_unlabeled_images)
+        #     )
 
         # get labeled images for train set
-        train_prepared.update(
-            {
-                i: self.labeled_images[i] for i in shuffled_labeled_images[:number_of_labeled_images_to_train]
-            }
-        )
+        # train_prepared.update(
+        #     {
+        #         i: self.labeled_images[i] for i in shuffled_labeled_images[:number_of_labeled_images_to_train]
+        #     }
+        # )
 
         # get images from train set to augmentation
         # images_to_augment.update(
@@ -285,12 +292,12 @@ class DatasetPreparation(object):
         #     )
 
         # add augmented and unlabeled images to train set, shuffle train set
-        train_prepared.update(
-            {
-                i: self.unlabeled_images[i] for i in shuffled_unlabeled_images[:number_of_unlabeled_images_to_train]
-            }
-        )
-        train_prepared.update(self.augmented_images)
+        # train_prepared.update(
+        #     {
+        #         i: self.unlabeled_images[i] for i in shuffled_unlabeled_images[:number_of_unlabeled_images_to_train]
+        #     }
+        # )
+        # train_prepared.update(self.augmented_images)
 
         shuffled_train = list(train_prepared.keys())
         random.shuffle(shuffled_train)
@@ -301,21 +308,21 @@ class DatasetPreparation(object):
         )
 
         # add labeled and unlabeled images to test set, shuffle test set
-        test_prepared.update(
-            {
-                i: self.labeled_images[i] for i in shuffled_labeled_images[number_of_labeled_images_to_train:]
-            }
-        )
-        test_prepared.update(
-            {
-                i: self.unlabeled_images[i] for i in shuffled_unlabeled_images[number_of_unlabeled_images_to_train:]
-            }
-        )
-        shuffled_test = list(test_prepared.keys())
+        # test_prepared.update(
+        #     {
+        #         i: self.labeled_images[i] for i in shuffled_labeled_images[number_of_labeled_images_to_train:]
+        #     }
+        # )
+        # test_prepared.update(
+        #     {
+        #         i: self.unlabeled_images[i] for i in shuffled_unlabeled_images[number_of_unlabeled_images_to_train:]
+        #     }
+        # )
+        shuffled_test = list(val_prepared.keys())
         random.shuffle(shuffled_test)
         test_finished.update(
             {
-                i: test_prepared[i] for i in shuffled_test
+                i: val_prepared[i] for i in shuffled_test
             }
         )
 

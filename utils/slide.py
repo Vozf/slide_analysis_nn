@@ -132,7 +132,7 @@ class Slide:
         return labeled_dict, unlabeled_dict
 
     def _get_processing_area_for_polygon(self, polygon):
-        return self._get_bounding_box_for_polygon(polygon)
+        x1, y1, x2, y2 =  self._get_bounding_box_for_polygon(polygon)
 
         enlarge_area = int(AREA_PROCESSING_MULTIPLIER * TILE_SIZE)
 
