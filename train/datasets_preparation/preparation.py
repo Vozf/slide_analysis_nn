@@ -15,6 +15,8 @@ import logging
 import cv2
 import imgaug as ia
 from imgaug import augmenters as iaa
+
+from utils.ASAP_xml import read_polygons_xml
 from utils.slide import Slide
 
 from train.datasets_preparation.settings import (
@@ -77,15 +79,8 @@ class DatasetPreparation(object):
             self.log.warning("Path {0} not exist".format(image_path))
             return None
 
-        root = ElementTree.parse(xml_file_path).getroot()
+        polygons = read_polygons_xml(xml_file_path)
 
-        all_annotations = root.find('Annotations').iter('Annotation')
-        polygon_annotations = filter(lambda annot: annot.get('Type') == 'Polygon', all_annotations)
-
-        polygons_coordinates_annotations = [x.find('Coordinates') for x in polygon_annotations]
-        polygons = [[(int(float(x.get('X'))), int(float(x.get('Y'))))
-                     for x in polygon.iter('Coordinate')]
-                    for polygon in polygons_coordinates_annotations]
         return {
             'image_path': image_path,
             'polygons': polygons,

@@ -51,8 +51,10 @@ class Predict():
         slide_generator = PredictGenerator(slide_path, batch_size=BATCH_SIZE)
         print('predict')
         start = time.time()
-        _, _, all_detections = self.model.predict_generator(slide_generator)
+        scores = self.model.predict_generator(slide_generator)
         print(time.time() - start, 'sup')
+
+        slide_generator.create_asap_annotations(scores)
 
         # return list(map(,detections))
 
@@ -121,13 +123,13 @@ class Predict():
 
 def main():
     predict_example = Predict()
-    predicted_results = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/small_with_tumor_images/Tumor_001.tif_69913:131750:72271:134592.tif')
+    predicted_results = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/small_with_tumor_images/Tumor_001.tif_69273:131110:72911:135232.tif')
     # image = read_image_bgr('path/to/image')
     # predicted_result = predict_example.predict_tile(image)
-    final_images = [predict_example.visualise(predicted_result, BRG_IMAGE_FORMAT) for predicted_result in predicted_results]
+    # final_images = [predict_example.visualise(predicted_result, BRG_IMAGE_FORMAT) for predicted_result in predicted_results]
     # final_image = predict_example.visualise(predicted_result, BRG_IMAGE_FORMAT)
     # TODO: solve error with python3-tk library
-    list(map(Predict.show, final_images))
+    # list(map(Predict.show, final_images))
 
 
 if __name__ == '__main__':
