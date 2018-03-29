@@ -230,7 +230,10 @@ class DatasetPreparation(object):
                         )
                     )
 
+
                 cv2.imwrite(augmented_image_path, augmented_image)
+
+        return self.augmented_images
 
     def populate_prepared_datasets(self):
         test_finished = defaultdict(list)
@@ -249,34 +252,7 @@ class DatasetPreparation(object):
         train_prepared = self._unite_array_of_dictionaries(train_tumors)
         val_prepared = self._unite_array_of_dictionaries(val_tumors)
 
-        # load images
-        # self._load_labeled_images()
-        # number_of_labeled_images = len(self.labeled_images.keys())
-        # self._load_unlabeled_images(int(number_of_labeled_images * IMAGES_WITHOUT_BRAND_PERCENT))
-
-        # shuffle images
-        # shuffled_unlabeled_images = list(self.unlabeled_images.keys())
-        # random.shuffle(shuffled_unlabeled_images)
-        # shuffled_labeled_images = list(self.labeled_images.keys())
-        # random.shuffle(shuffled_labeled_images)
-
-        # count images for sets and augmentation
-        # number_of_unlabeled_images = len(self.unlabeled_images.keys())
-        # number_of_unlabeled_images_to_train = int(UNLABELED_IMAGES_TRAIN_PERCENT * number_of_unlabeled_images)
-        # number_of_images_to_augment = int(AUGMENTATION_PERCENT * number_of_labeled_images)
-        # number_of_labeled_images_to_train = int(LABELED_IMAGES_TRAIN_PERCENT * number_of_labeled_images)
-
-        # if number_of_unlabeled_images < int(number_of_labeled_images * IMAGES_WITHOUT_BRAND_PERCENT):
-        #     self.log.warning(
-        #         'Amount of unlabeled images: {0}, less then necessary'.format(number_of_unlabeled_images)
-        #     )
-
-        # get labeled images for train set
-        # train_prepared.update(
-        #     {
-        #         i: self.labeled_images[i] for i in shuffled_labeled_images[:number_of_labeled_images_to_train]
-        #     }
-        # )
+        # number_of_images_to_augment = int(AUGMENTATION_PERCENT * number_of_train_tumors)
 
         # get images from train set to augmentation
         # images_to_augment.update(
@@ -284,17 +260,12 @@ class DatasetPreparation(object):
         #         i: train_prepared[i] for i in list(train_prepared.keys())[:number_of_images_to_augment]
         #     }
         # )
-        # self.augment_images(images_to_augment)
-        #
-        # if len(self.augmented_images) < number_of_images_to_augment:
-        #     self.log.warning(
-        #         'Amount of augmented images: {0}, less then necessary'.format(len(self.augmented_images))
-        #     )
+        # augmented_images = self.augment_images(images_to_augment)
 
         # add augmented and unlabeled images to train set, shuffle train set
         # train_prepared.update(
         #     {
-        #         i: self.unlabeled_images[i] for i in shuffled_unlabeled_images[:number_of_unlabeled_images_to_train]
+        #         i: self.unlabeled_images[i] for i in augmented_images
         #     }
         # )
         # train_prepared.update(self.augmented_images)
@@ -307,17 +278,6 @@ class DatasetPreparation(object):
             }
         )
 
-        # add labeled and unlabeled images to test set, shuffle test set
-        # test_prepared.update(
-        #     {
-        #         i: self.labeled_images[i] for i in shuffled_labeled_images[number_of_labeled_images_to_train:]
-        #     }
-        # )
-        # test_prepared.update(
-        #     {
-        #         i: self.unlabeled_images[i] for i in shuffled_unlabeled_images[number_of_unlabeled_images_to_train:]
-        #     }
-        # )
         shuffled_test = list(val_prepared.keys())
         random.shuffle(shuffled_test)
         test_finished.update(
