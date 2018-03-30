@@ -3,8 +3,9 @@ import cProfile
 import numpy as np
 import keras
 import time
-from openslide.deepzoom import DeepZoomGenerator
+import os
 
+from utils.ASAP_xml import write_polygons_xml
 from utils.constants import TILE_SIZE, TILE_STEP
 from utils.slide import Slide
 
@@ -33,6 +34,7 @@ class PredictGenerator(keras.utils.Sequence):
 
 
         print(str(index) + ':' + str(len(self)))
+
         addresses = self.addresses[index * self.batch_size:(index + 1) * self.batch_size]
 
         X = self.__data_generation(addresses)
@@ -45,5 +47,10 @@ class PredictGenerator(keras.utils.Sequence):
     def __data_generation(self, addresses):
         return np.asarray([np.asarray(self.slide.cut_tile(*add))[..., :3] for add in addresses])
 
-    def create_asap_annotations(self, scores):
-        pass
+    def create_asap_annotations(self, predicted_labels, scores):
+        xml_path = '{}.xml'.format(os.path.splitext(self.slide.slide_path)[0])
+        polygons = [
+            [(x1, y1), (x1 + TILE_SIZE, y1), (x1 + TILE_SIZE, y1 + TILE_SIZE), (x1, y1 + TILE_SIZE)]
+            for (x1, y1) in self.addresses]
+
+        return write_polygons_xml(polygons, predicted_labels=predicted_labels, scores=scores, xml_path=xml_path)

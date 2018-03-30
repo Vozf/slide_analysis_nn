@@ -35,8 +35,8 @@ class Predict():
     def _load_model(self):
         try:
             files = glob.iglob(self.snapshot_path+'/**', recursive=True)
-            models = sorted(filter(lambda x: Predict.filter_models(x), files))
-            model_path = os.path.join(self.snapshot_path, models[len(models) - 1])
+            models = sorted(filter(lambda x: Predict.filter_models(x), files), key=os.path.getmtime)
+            model_path = os.path.join(self.snapshot_path, models[- 1])
             self.model = keras.models.load_model(model_path, custom_objects=custom_objects)
         except (IndexError, OSError) as error:
             print('Cannot load model: {0}'.format(error))
@@ -54,7 +54,10 @@ class Predict():
         scores = self.model.predict_generator(slide_generator)
         print(time.time() - start, 'sup')
 
-        slide_generator.create_asap_annotations(scores)
+        predicted_labels = np.argmax(scores, axis=1)
+        scores = scores[np.arange(scores.shape[0]), predicted_labels]
+
+        slide_generator.create_asap_annotations(predicted_labels, scores)
 
         # return list(map(,detections))
 
