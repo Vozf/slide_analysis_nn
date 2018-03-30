@@ -58,7 +58,7 @@ class Train(GPUSupportMixin):
             )
 
         self.snapshot_path = os.path.join(
-            SNAPSHOTS_DIR, 'simple_train_{}'.format(len(os.listdir(SNAPSHOTS_DIR)))
+            SNAPSHOTS_DIR, 'train_{}'.format(len(os.listdir(SNAPSHOTS_DIR)))
         )
         if not os.path.exists(self.snapshot_path):
             os.mkdir(self.snapshot_path)
@@ -181,11 +181,11 @@ class Train(GPUSupportMixin):
 
 
 def main():
-    dataset_preparation = DatasetPreparation()
-    dataset_preparation.populate_prepared_datasets()
-
-    # train = Train()
-    # train.start_training()
+    # dataset_preparation = DatasetPreparation()
+    # dataset_preparation.populate_prepared_datasets()
+    #
+    train = Train()
+    train.start_training()
 
 
 if __name__ == '__main__':

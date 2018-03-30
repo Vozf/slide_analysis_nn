@@ -41,16 +41,7 @@ class DatasetPreparation(object):
         self.unlabeled_images = defaultdict(list)
         self.augmented_images = defaultdict(list)
 
-    def _unpack_directories(self, path):
-        for root, dirs, files in os.walk(path):
-            for f in files:
-                os.rename(os.path.join(root, f), os.path.join(path, f)),
-
-        dirs_to_remove = map(lambda x: os.path.join(path, x), os.listdir(path))
-        for dir_to_remove in filter(lambda x: os.path.isdir(x), dirs_to_remove):
-            shutil.rmtree(dir_to_remove)
-
-    def _prepare_labeled_slides(self):
+    def _prepare_slides_for_training(self):
         for the_file in os.listdir(LABELED_IMAGES_DIR):
             file_path = os.path.join(LABELED_IMAGES_DIR, the_file)
             if os.path.isfile(file_path):
@@ -89,68 +80,6 @@ class DatasetPreparation(object):
     def _process_slide(self, polygon_images):
         slide = Slide(polygon_images['image_path'])
         return slide.cut_polygons_data(polygon_images['polygons'])
-
-
-    def _load_labeled_images(self):
-        self.labeled_images = defaultdict(list)
-        self._unpack_directories(LABELED_IMAGES_DIR)
-
-        for xml_file_path in glob.iglob(os.path.join(LABELED_IMAGES_DIR, '*xml')):
-            image_path = '{}.jpeg'.format(os.path.splitext(xml_file_path)[0])
-            if not os.path.exists(image_path):
-                self.log.warning("Path {0} not exist".format(image_path))
-                continue
-
-            root = ElementTree.parse(xml_file_path).getroot()
-
-            for label in root.iter('object'):
-                bounding_box = label.find('bndbox')
-
-                x1 = int(bounding_box.find('xmin').text)
-                y1 = int(bounding_box.find('ymin').text)
-                x2 = int(bounding_box.find('xmax').text)
-                y2 = int(bounding_box.find('ymax').text)
-
-                if x1 == x2 or y1 == y2:
-                    self.log.warning(
-                        'Error in path {0}: wrong coordinates: x1 = {1}, x2 = {2}, y1 = {3}, y2 = {4}'.format(
-                        image_path, x1, x2, y1, y2
-                        )
-                    )
-                    continue
-
-                self.labeled_images[image_path].append(
-                    Label(
-                        path=image_path,
-                        x1=x1,
-                        y1=y1,
-                        x2=x2,
-                        y2=y2,
-                        class_name=DEFAULT_CLASS_NAME
-                    )
-                )
-
-            if len(self.labeled_images[image_path]) == 0:
-                self.log.warning('Path {0} is empty'.format(image_path))
-                self.labeled_images.pop(image_path)
-
-    def _load_unlabeled_images(self, number_of_unlabeled_images=None):
-        self.unlabeled_images = defaultdict(list)
-        self._unpack_directories(UNLABELED_IMAGES_DIR)
-
-        for image_path in list(
-                glob.iglob(os.path.join(UNLABELED_IMAGES_DIR, '*jpeg'))
-        )[:number_of_unlabeled_images]:
-            self.unlabeled_images[image_path].append(
-                Label(
-                    path=image_path,
-                    x1=None,
-                    y1=None,
-                    x2=None,
-                    y2=None,
-                    class_name=None,
-                )
-            )
 
     def get_class_mapping(self, train_dataset, test_dataset):
         datasets_values = itertools.chain(train_dataset.values(), test_dataset.values())
@@ -235,17 +164,9 @@ class DatasetPreparation(object):
         train_finished = defaultdict(list)
         # images_to_augment = defaultdict(list)
 
-        dicts = self._prepare_labeled_slides()
+        dicts = self._prepare_slides_for_training()
 
-        random.shuffle(dicts)
-
-        number_of_train_tumors = int(len(dicts) * TRAIN_DATASET_PERCENT)
-
-        train_tumors = dicts[:number_of_train_tumors]
-        val_tumors = dicts[number_of_train_tumors:]
-
-        train_prepared = self._unite_array_of_dictionaries(train_tumors)
-        val_prepared = self._unite_array_of_dictionaries(val_tumors)
+        train_prepared, val_prepared = self._divide_to_train_and_validation(dicts)
 
         # number_of_images_to_augment = int(AUGMENTATION_PERCENT * number_of_train_tumors)
 
@@ -293,6 +214,30 @@ class DatasetPreparation(object):
             [label for labels in train_finished.values() for label in labels],
             TRAIN_DATASET_FILE_PATH
         )
+
+    def _divide_to_train_and_validation(self, dicts):
+        random.shuffle(dicts)
+
+        dataset_size = sum([len(x[0]) + len(x[1]) for x in dicts])
+        ideal_number_of_train_tumors = int(dataset_size * TRAIN_DATASET_PERCENT)
+        current_number_of_train_tumors = 0
+
+        train = defaultdict(list)
+        test = defaultdict(list)
+
+        for (labeled_tumor, unlabeled_tumor) in dicts:
+            if current_number_of_train_tumors < ideal_number_of_train_tumors:
+                train.update(labeled_tumor)
+                train.update(unlabeled_tumor)
+                current_number_of_train_tumors += len(labeled_tumor) +len(unlabeled_tumor)
+            else:
+                test.update(labeled_tumor)
+                test.update(unlabeled_tumor)
+
+        print('Train data set percentage = {:.2%}'.format(
+            current_number_of_train_tumors / dataset_size))
+
+        return train, test
 
     @staticmethod
     def create_csv_from_list(data, csv_path):

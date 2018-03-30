@@ -20,4 +20,5 @@ TEST_DATASET_FILE_PATH = os.path.join(PROJECT_PATH, 'datasets', 'prepared_datase
 TRAIN_DATASET_FILE_PATH = os.path.join(PROJECT_PATH, 'datasets', 'prepared_datasets', 'train.csv')
 CLASS_MAPPING_FILE_PATH = os.path.join(PROJECT_PATH, 'datasets', 'prepared_datasets', 'class_mapping.csv')
 
+BACKGROUND_CLASS_NAME = 'Background'
 DEFAULT_CLASS_NAME = 'Tumor'

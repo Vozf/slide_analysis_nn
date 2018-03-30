@@ -9,11 +9,11 @@ from openslide import open_slide
 
 from train.datasets_preparation.settings import (
     DEFAULT_CLASS_NAME,
+    BACKGROUND_CLASS_NAME,
     UNLABELED_IMAGES_DIR,
     LABELED_IMAGES_DIR,
     SMALL_WITH_TUMOR_IMAGES_DIR
 )
-from prediction.settings import PREDICT_TILES_DIR
 from utils.constants import TILE_SIZE, TILE_STEP, AREA_PROCESSING_MULTIPLIER
 import numpy as np
 from os.path import basename, join
@@ -113,7 +113,7 @@ class Slide:
                     bounding_boxes = [(None, None, None, None)]
                     dir = UNLABELED_IMAGES_DIR
                     dictionary = unlabeled_dict
-                    class_name = None
+                    class_name = BACKGROUND_CLASS_NAME
 
                 image_path = self._save_tile(tile_box, dir_path=dir)
 
@@ -134,12 +134,15 @@ class Slide:
     def _get_processing_area_for_polygon(self, polygon):
         x1, y1, x2, y2 =  self._get_bounding_box_for_polygon(polygon)
 
-        enlarge_area = int(AREA_PROCESSING_MULTIPLIER * TILE_SIZE)
+        # enlarge_area_x = int(AREA_PROCESSING_MULTIPLIER * TILE_SIZE)
+        # enlarge_area_y = int(AREA_PROCESSING_MULTIPLIER * TILE_SIZE)
+        enlarge_area_x = int((x2 - x1) * (AREA_PROCESSING_MULTIPLIER - 1)/2)
+        enlarge_area_y = int((y2 - y1) * (AREA_PROCESSING_MULTIPLIER - 1)/2)
 
-        return max(x1 - enlarge_area, 0), \
-               max(y1 - enlarge_area, 0), \
-               min(x2 + enlarge_area, self.slide.dimensions[0]), \
-               min(y2 + enlarge_area, self.slide.dimensions[1])
+        return max(x1 - enlarge_area_x, 0), \
+               max(y1 - enlarge_area_y, 0), \
+               min(x2 + enlarge_area_x, self.slide.dimensions[0]), \
+               min(y2 + enlarge_area_y, self.slide.dimensions[1])
 
     def _is_intersected(self, polygon, tile_box):
         rect = box(*tile_box)
@@ -178,6 +181,3 @@ class Slide:
 
         tile.save(image_path)
         return image_path
-
-
-# cut_image_to_tiles('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/slide_images/Tumor_015.tif')

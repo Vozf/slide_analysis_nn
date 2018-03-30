@@ -19,7 +19,7 @@ class Generator(keras.utils.Sequence):
 
     def num_classes(self):
         # add fake unused class for crossentropy to work
-        return len(self.names_to_label) + 1
+        return len(self.names_to_label)
 
     def __len__(self):
         return int(np.floor(len(self.data) / self.batch_size))

@@ -59,10 +59,7 @@ class Predict():
 
         slide_generator.create_asap_annotations(predicted_labels, scores)
 
-        # return list(map(,detections))
-
-        return [Result(image=slide_gen[0][0], detections=detections) for slide_gen, detections in
-                zip(slide_generator, all_detections)]
+        return scores, predicted_labels
 
 
     def predict_tile(self, image):
