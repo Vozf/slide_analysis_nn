@@ -18,7 +18,6 @@ class Generator(keras.utils.Sequence):
             self.names_to_label = dict(reader)
 
     def num_classes(self):
-        # add fake unused class for crossentropy to work
         return len(self.names_to_label)
 
     def __len__(self):
@@ -35,7 +34,7 @@ class Generator(keras.utils.Sequence):
         return X, y
 
     def __data_generation(self, data):
-        return np.asarray([cv2.imread(path, cv2.IMREAD_COLOR) for path, _ in data]), \
+        return np.asarray([cv2.imread(path, cv2.IMREAD_COLOR) for path, _ in data]) / 255, \
                np.asarray([self._get_one_hot(label_name) for _, label_name in data])
 
     def _get_one_hot(self, label_name):

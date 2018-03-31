@@ -45,7 +45,8 @@ class PredictGenerator(keras.utils.Sequence):
         return X, np.zeros(len(X))
 
     def __data_generation(self, addresses):
-        return np.asarray([np.asarray(self.slide.cut_tile(*add))[..., :3] for add in addresses])
+        return np.asarray(
+            [np.asarray(self.slide.cut_tile(*add))[..., :3] for add in addresses]) / 255
 
     def create_asap_annotations(self, predicted_labels, scores):
         xml_path = '{}.xml'.format(os.path.splitext(self.slide.slide_path)[0])

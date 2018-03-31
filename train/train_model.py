@@ -1,11 +1,10 @@
 import logging
 import os
-import re
-import subprocess
 
 import keras
 import tensorflow
-from keras.callbacks import TensorBoard
+
+from train.callbacks import TB
 from keras.models import Sequential
 from keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten
 from train.generator import Generator
@@ -13,7 +12,6 @@ from keras.utils import multi_gpu_model
 from tensorflow.python.framework.graph_util import convert_variables_to_constants
 
 
-from train.datasets_preparation.preparation import DatasetPreparation
 from train.callbacks import (
     TensorGraphConverter,
     BestModelCheckpoint,
@@ -106,34 +104,31 @@ class Train(GPUSupportMixin):
         model.add(Dropout(0.5))
         model.add(Dense(num_classes, activation='softmax'))
 
-        training_model = model
-        prediction_model = model
-
         # compile model
-        training_model.compile(
+        model.compile(
             loss='categorical_crossentropy',
             metrics=['accuracy'],
-            optimizer=keras.optimizers.adam(lr=1e-5, clipnorm=0.001)
+            optimizer=keras.optimizers.adam(lr=1e-4, clipnorm=0.001)
         )
 
-        return model, training_model, prediction_model
+        return model
 
     def _create_callbacks(self, prediction_model, validation_generator):
         callbacks = []
 
         # save the prediction model
-        checkpoint = BestModelCheckpoint(
-            os.path.join(self.snapshot_path, 'slide_analysis_{epoch:02d}_{val_loss:.2f}.h5'),
-            verbose=1, monitor='val_loss', save_best_only=True, mode='min'
-        )
-        callbacks.append(checkpoint)
+        # checkpoint = BestModelCheckpoint(
+        #     os.path.join(self.snapshot_path, 'slide_analysis_{epoch:02d}_{val_loss:.2f}.h5'),
+        #     verbose=1, monitor='val_loss', save_best_only=True, mode='min'
+        # )
+        # callbacks.append(checkpoint)
 
         # Save the prediction model as tf_graph
-        converter = TensorGraphConverter(
-            prediction_model,
-            os.path.join(self.snapshot_path),
-        )
-        callbacks.append(converter)
+        # converter = TensorGraphConverter(
+        #     prediction_model,
+        #     os.path.join(self.snapshot_path),
+        # )
+        # callbacks.append(converter)
 
         early_stopping = keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=MIN_DELTA,
                                                        patience=PATIENCE)
@@ -145,10 +140,9 @@ class Train(GPUSupportMixin):
         )
         callbacks.append(lr_scheduler)
 
-        tensor_board = TensorBoard(
-            log_dir=os.path.join(TF_BOARD_LOGS_DIR,
-                                 'train_{}'.format(len(os.listdir(TF_BOARD_LOGS_DIR)))
-                                 )
+        tensor_board = TB(
+            log_every=True, log_dir=os.path.join(TF_BOARD_LOGS_DIR, 'train_{}'.format(
+                len(os.listdir(TF_BOARD_LOGS_DIR))))
         )
         callbacks.append(tensor_board)
 
@@ -162,15 +156,15 @@ class Train(GPUSupportMixin):
         train_steps = TRAIN_STEPS if TRAIN_STEPS is not None else len(train_generator)
         val_steps = VALIDATION_STEPS if VALIDATION_STEPS is not None else len(validation_generator)
 
-        model, training_model, prediction_model = self._create_model(
+        model = self._create_model(
             num_classes=train_generator.num_classes())
 
         self.log.info(model.summary())
 
-        callbacks = self._create_callbacks(prediction_model, validation_generator)
+        callbacks = self._create_callbacks(model, validation_generator)
 
         # start training
-        training_model.fit_generator(
+        model.fit_generator(
             generator=train_generator,
             steps_per_epoch=train_steps,
             epochs=self.epochs,
@@ -183,7 +177,7 @@ class Train(GPUSupportMixin):
 def main():
     # dataset_preparation = DatasetPreparation()
     # dataset_preparation.populate_prepared_datasets()
-    #
+
     train = Train()
     train.start_training()
 
