@@ -3,6 +3,7 @@ import csv
 import cv2
 import numpy as np
 import keras
+from keras.utils import to_categorical
 
 
 class Generator(keras.utils.Sequence):
@@ -11,7 +12,7 @@ class Generator(keras.utils.Sequence):
 
         with open(data_path, 'r') as csvfile:
             reader = csv.reader(csvfile)
-            self.data = [(row[0], row[-1])for row in reader]
+            self.data = np.asarray([(row[0], row[-1]) for row in reader])
 
         with open(class_mapping_path, 'r') as csvfile:
             reader = csv.reader(csvfile)
@@ -27,22 +28,17 @@ class Generator(keras.utils.Sequence):
         if isinstance(index, slice):
             return [self[i] for i in range(index.start, index.stop, index.step)]
 
-        data = self.data[index * self.batch_size:(index + 1) * self.batch_size]
+        paths, label_names = self.data[index * self.batch_size:(index + 1) * self.batch_size].T
 
-        X, y = self.__data_generation(data)
+        X, y = self.__data_generation(paths, label_names)
 
         return X, y
 
-    def __data_generation(self, data):
-        return np.asarray([cv2.imread(path, cv2.IMREAD_COLOR) for path, _ in data]) / 255, \
-               np.asarray([self._get_one_hot(label_name) for _, label_name in data])
+    def __data_generation(self, paths, label_names):
+        return np.asarray([cv2.imread(path, cv2.IMREAD_COLOR) for path in paths]) / 255, \
+               self._get_one_hot(label_names)
 
-    def _get_one_hot(self, label_name):
-        # y = [self.names_to_label[label_name]] if label_name in self.names_to_label else []
-        # return to_categorical(y, self.num_classes())
-        arr = np.zeros(self.num_classes(), dtype=int)
-        if label_name in self.names_to_label:
-            arr[int(self.names_to_label[label_name])] = 1
-
-        return arr
+    def _get_one_hot(self, label_names):
+        labels = [self.names_to_label[label_name] for label_name in label_names]
+        return to_categorical(labels, self.num_classes())
 
