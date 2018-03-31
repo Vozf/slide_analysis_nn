@@ -18,6 +18,7 @@ from utils.constants import TILE_SIZE, TILE_STEP, AREA_PROCESSING_MULTIPLIER
 import numpy as np
 from os.path import basename, join
 from train.datasets_preparation.utils import Label
+from matplotlib import pyplot as plt
 
 
 class Slide:
@@ -28,12 +29,12 @@ class Slide:
     def cut_tile(self, x, y, width=TILE_SIZE, height=TILE_SIZE):
         return self.slide.read_region((x, y), 0, (width, height))
 
-    def cut_polygons_data(self, bounding_box_polygons):
+    def cut_polygons_data(self, bounding_box_polygons, draw_invalid_polygons=False):
+        shapely_poly = [self._create_shapely_polygon(poly, draw_invalid_polygons) for poly in
+                        bounding_box_polygons]
+        filtered_shapely_polygons = filter(None, np.hstack(shapely_poly))
 
-        shapely_bounding_box_polygons = \
-            list(filter(lambda x: x.is_valid, [Polygon(bbox) for bbox in bounding_box_polygons]))
-
-        dicts = list(map(self._process_polygon, shapely_bounding_box_polygons))
+        dicts = list(map(self._process_polygon, filtered_shapely_polygons))
 
         labeled_dict, unlabeled_dict = \
             reduce(lambda acc, dic: ({**acc[0], **dic[0]}, {**acc[1], **dic[1]}), dicts,
@@ -41,54 +42,31 @@ class Slide:
 
         return labeled_dict, unlabeled_dict
 
-    def cut_unlabeled_data(self, number, dir_path):
-        pass
+    def _create_shapely_polygon(self, polygon, draw_invalid_polygons):
+        shapely_polygon = Polygon(polygon)
+        if shapely_polygon.is_valid:
+            return shapely_polygon
 
-    def deepzoom(self):
-        dz = DeepZoomGenerator(self.slide, tile_size=TILE_SIZE, overlap=0)
+        fixed_shapely_polygon = shapely_polygon.buffer(0)
 
-        return dz
+        if draw_invalid_polygons:
+            plt.scatter(*np.asarray(polygon).T, c='r', s=200)
 
-        print('cutting')
-        i=0
-        siz = len(tiles_to_cut)
+            if hasattr(fixed_shapely_polygon, 'exterior'):
+                plt.scatter(*np.array(fixed_shapely_polygon.exterior.coords.xy), c='g')
+            else:
+                [plt.scatter(*np.array(poly.exterior.coords.xy), c='g') for poly in
+                 fixed_shapely_polygon]
 
-        def printt():
-            nonlocal i
-            i+=1
-            print(i/siz)
+            plt.show()
 
-        tiles = map(lambda tile: [dz.get_tile(len(dz.level_tiles) - 1, tile), printt()][0],
-                    tiles_to_cut)
+        if fixed_shapely_polygon.is_valid:
+            return list(fixed_shapely_polygon.geoms) if hasattr(fixed_shapely_polygon,
+                                                          'geoms') else fixed_shapely_polygon
 
-        return list(tiles)
+        print('invalid polygon at path: {}'.format(self.slide_path))
 
-    # def cut_for_predict(self):
-    #     x = range(0, self.slide.dimensions[0], TILE_STEP)
-    #     y = range(0, self.slide.dimensions[1], TILE_STEP)
-    #     coords_to_cut = np.transpose([np.tile(x, len(y)), np.repeat(y, len(x))])[20:40]
-    #
-    #     print('cutting')
-    #     i=0
-    #     siz = len(coords_to_cut)
-    #
-    #     def printt():
-    #         nonlocal i
-    #         i+=1
-    #         print(i/siz)
-    #
-    #     tile_boxes_to_cut = map(
-    #         lambda coords: (*coords, coords[0] + TILE_SIZE, coords[1] + TILE_SIZE), coords_to_cut)
-    #
-    #     cutted_boxes = map(lambda tile_box: [(self.cut_tile(*tile_box), tile_box), printt()][0], tile_boxes_to_cut)
-    #     return cutted_boxes
-    #
-    #     saved_boxes = map(lambda cutted_image_and_box: [self._save_tile(*cutted_image_and_box, PREDICT_TILES_DIR), printt()][0], cutted_boxes)
-    #
-    #     # tile_paths = map(lambda tile_box: [self._save_tile(self.cut_tile(*tile_box), tile_box, PREDICT_TILES_DIR), printt()][0],
-    #     #     tile_boxes_to_cut)
-    #
-    #     return list(saved_boxes)
+        return None
 
     def _process_polygon(self, polygon):
         print(self._get_bounding_box_for_polygon(polygon), self._get_processing_area_for_polygon(polygon))

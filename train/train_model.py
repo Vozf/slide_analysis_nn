@@ -7,6 +7,8 @@ import tensorflow
 from train.callbacks import TB
 from keras.models import Sequential
 from keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten
+
+from train.datasets_preparation.preparation import DatasetPreparation
 from train.generator import Generator
 from keras.utils import multi_gpu_model
 from tensorflow.python.framework.graph_util import convert_variables_to_constants
@@ -175,11 +177,11 @@ class Train(GPUSupportMixin):
 
 
 def main():
-    # dataset_preparation = DatasetPreparation()
-    # dataset_preparation.populate_prepared_datasets()
-
-    train = Train()
-    train.start_training()
+    dataset_preparation = DatasetPreparation()
+    dataset_preparation.populate_prepared_datasets()
+    #
+    # train = Train()
+    # train.start_training()
 
 
 if __name__ == '__main__':
