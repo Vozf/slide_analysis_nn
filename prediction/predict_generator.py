@@ -32,7 +32,7 @@ class PredictGenerator(keras.utils.Sequence):
         if isinstance(index, slice):
             return [self[i] for i in range(index.start, index.stop, index.step)]
 
-        # self.times.append(time.time())
+        self.diffs.append(time.time() - self.times[-1])
 
 
         print(str(index) + ':' + str(len(self)))
@@ -41,8 +41,8 @@ class PredictGenerator(keras.utils.Sequence):
 
         X = self.__data_generation(addresses)
 
-        # self.diffs.append(time.time() - self.times[-1])
-        # print(self.diffs)
+        self.times.append(time.time())
+        print(self.diffs[-5:])
 
         return X, np.zeros(len(X))
 

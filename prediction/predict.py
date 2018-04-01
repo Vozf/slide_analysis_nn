@@ -100,14 +100,8 @@ class Predict:
 
 def main():
     predict_example = Predict()
-    # predicted_results = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/slide_images/Tumor_016.tif')
-    predicted_results = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/small_with_tumor_images/Tumor_044.tif_67170:143266:69380:146408.tif')
-    # image = read_image_bgr('path/to/image')
-    # predicted_result = predict_example.predict_tile(image)
-    # final_images = [predict_example.visualise(predicted_result, BRG_IMAGE_FORMAT) for predicted_result in predicted_results]
-    # final_image = predict_example.visualise(predicted_result, BRG_IMAGE_FORMAT)
-    # TODO: solve error with python3-tk library
-    # list(map(Predict.show, final_images))
+    predicted_results = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/slide_images/Tumor_016.tif')
+    # predicted_results = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/small_with_tumor_images/Tumor_044.tif_67170:143266:69380:146408.tif')
 
 
 if __name__ == '__main__':

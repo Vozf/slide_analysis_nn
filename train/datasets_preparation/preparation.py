@@ -253,3 +253,20 @@ class DatasetPreparation(object):
     @staticmethod
     def make_string(item):
         return str(item) if isinstance(item, Integral) else '' if item is None else item
+
+    @staticmethod
+    def get_label_name_to_label_id_dict():
+        with open(CLASS_MAPPING_FILE_PATH, 'r') as csvfile:
+            reader = csv.reader(csvfile)
+            names_to_label_str = dict(reader)
+
+        names_to_label_int = {k: int(v) for k, v in names_to_label_str.items()}
+
+        return names_to_label_int
+
+    @staticmethod
+    def get_label_id_to_label_name_dict():
+        name_to_id = DatasetPreparation.get_label_name_to_label_id_dict()
+        id_to_name = {v: k for k, v in name_to_id.items()}
+
+        return id_to_name
