@@ -1,4 +1,5 @@
 import csv
+from concurrent.futures import ThreadPoolExecutor
 
 import cv2
 import numpy as np
@@ -35,8 +36,12 @@ class Generator(keras.utils.Sequence):
         return X, y
 
     def __data_generation(self, paths, label_names):
-        return np.asarray([cv2.imread(path, cv2.IMREAD_COLOR) for path in paths]) / 255, \
-               self._get_one_hot(label_names)
+        with ThreadPoolExecutor() as executor:
+            rgb_iter = executor.map(lambda path: cv2.imread(path, cv2.IMREAD_COLOR), paths)
+
+        rgb0_255 = np.asarray(list(rgb_iter))
+
+        return rgb0_255 / 255, self._get_one_hot(label_names)
 
     def _get_one_hot(self, label_names):
         labels = [self.names_to_label[label_name] for label_name in label_names]
