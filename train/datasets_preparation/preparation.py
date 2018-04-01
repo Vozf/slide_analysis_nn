@@ -3,14 +3,11 @@ import glob
 import itertools
 import os
 import random
-import shutil
-
 from functools import reduce
-from numpy import array
+
+import time
 from collections import defaultdict
 from numbers import Integral
-from xml.etree import ElementTree
-
 import logging
 import cv2
 import imgaug as ia
@@ -54,9 +51,12 @@ class DatasetPreparation(object):
 
         polygon_images = map(self._prepare_polygons,
                              glob.iglob(os.path.join(SLIDE_IMAGES_DIR, '*xml')))
+        start = time.time()
 
         dicts = list(map(self._process_slide, filter(lambda x: x, polygon_images)))
 
+        print('cut')
+        print(time.time() - start)
         return dicts
 
     def _unite_array_of_dictionaries(self, list_of_dict_pairs):
@@ -218,21 +218,19 @@ class DatasetPreparation(object):
     def _divide_to_train_and_validation(self, dicts):
         random.shuffle(dicts)
 
-        dataset_size = sum([len(x[0]) + len(x[1]) for x in dicts])
+        dataset_size = sum([len(x) for x in dicts])
         ideal_number_of_train_tumors = int(dataset_size * TRAIN_DATASET_PERCENT)
         current_number_of_train_tumors = 0
 
         train = defaultdict(list)
         test = defaultdict(list)
 
-        for (labeled_tumor, unlabeled_tumor) in dicts:
+        for tumor_data in dicts:
             if current_number_of_train_tumors < ideal_number_of_train_tumors:
-                train.update(labeled_tumor)
-                train.update(unlabeled_tumor)
-                current_number_of_train_tumors += len(labeled_tumor) +len(unlabeled_tumor)
+                train.update(tumor_data)
+                current_number_of_train_tumors += len(tumor_data)
             else:
-                test.update(labeled_tumor)
-                test.update(unlabeled_tumor)
+                test.update(tumor_data)
 
         print('Train data set percentage = {:.2%}'.format(
             current_number_of_train_tumors / dataset_size))

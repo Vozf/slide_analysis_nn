@@ -119,11 +119,11 @@ class Train(GPUSupportMixin):
         callbacks = []
 
         # save the prediction model
-        # checkpoint = BestModelCheckpoint(
-        #     os.path.join(self.snapshot_path, 'slide_analysis_{epoch:02d}_{val_loss:.2f}.h5'),
-        #     verbose=1, monitor='val_loss', save_best_only=True, mode='min'
-        # )
-        # callbacks.append(checkpoint)
+        checkpoint = BestModelCheckpoint(
+            os.path.join(self.snapshot_path, 'slide_analysis_{epoch:02d}_{val_loss:.2f}.h5'),
+            verbose=1, monitor='val_loss', save_best_only=True, mode='min'
+        )
+        callbacks.append(checkpoint)
 
         # Save the prediction model as tf_graph
         # converter = TensorGraphConverter(
@@ -132,9 +132,9 @@ class Train(GPUSupportMixin):
         # )
         # callbacks.append(converter)
 
-        early_stopping = keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=MIN_DELTA,
-                                                       patience=PATIENCE)
-        callbacks.append(early_stopping)
+        # early_stopping = keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=MIN_DELTA,
+        #                                                patience=PATIENCE)
+        # callbacks.append(early_stopping)
 
         lr_scheduler = keras.callbacks.ReduceLROnPlateau(
             monitor='loss', factor=0.1, patience=2, verbose=1, mode='auto',

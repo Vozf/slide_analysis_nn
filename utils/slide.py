@@ -1,9 +1,7 @@
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 
-from functools import reduce
-
-from openslide.deepzoom import DeepZoomGenerator
-from shapely.geometry import Polygon, Point, box
+from shapely.geometry import Polygon, box
 
 from openslide import open_slide
 
@@ -20,6 +18,8 @@ from os.path import basename, join
 from train.datasets_preparation.utils import Label
 from matplotlib import pyplot as plt
 
+from utils.functions import dict_assign
+
 
 class Slide:
     def __init__(self, slide_path):
@@ -30,19 +30,18 @@ class Slide:
         return self.slide.read_region((x, y), 0, (width, height))
 
     def cut_polygons_data(self, bounding_box_polygons, draw_invalid_polygons=False):
+        print('processing slide {}'.format(self.slide_path))
+
         shapely_poly = [self._create_shapely_polygon(poly, draw_invalid_polygons) for poly in
                         bounding_box_polygons]
         filtered_shapely_polygons = filter(None, np.hstack(shapely_poly))
 
-        dicts = list(map(self._process_polygon, filtered_shapely_polygons))
+        with ThreadPoolExecutor() as executor:
+            dicts = list(executor.map(self._process_polygon, filtered_shapely_polygons))
 
-        labeled_dict, unlabeled_dict = \
-            reduce(lambda acc, dic: ({**acc[0], **dic[0]}, {**acc[1], **dic[1]}), dicts,
-                   (defaultdict(list), defaultdict(list)))
+        return dict_assign({}, *dicts)
 
-        return labeled_dict, unlabeled_dict
-
-    def _create_shapely_polygon(self, polygon, draw_invalid_polygons):
+    def _create_shapely_polygon(self, polygon, draw_invalid_polygons=False):
         shapely_polygon = Polygon(polygon)
         if shapely_polygon.is_valid:
             return shapely_polygon
@@ -61,8 +60,7 @@ class Slide:
             plt.show()
 
         if fixed_shapely_polygon.is_valid:
-            return list(fixed_shapely_polygon.geoms) if hasattr(fixed_shapely_polygon,
-                                                          'geoms') else fixed_shapely_polygon
+            return fixed_shapely_polygon
 
         print('invalid polygon at path: {}'.format(self.slide_path))
 
@@ -70,44 +68,46 @@ class Slide:
 
     def _process_polygon(self, polygon):
         print(self._get_bounding_box_for_polygon(polygon), self._get_processing_area_for_polygon(polygon))
-        labeled_dict = defaultdict(list)
-        unlabeled_dict = defaultdict(list)
+        dictionary = defaultdict(list)
 
         x1pa, y1pa, x2pa, y2pa = self._get_processing_area_for_polygon(polygon)
 
-        self._save_tile((x1pa, y1pa, x2pa, y2pa), dir_path=SMALL_WITH_TUMOR_IMAGES_DIR, ext='tif')
+        # if x2pa - x1pa > 30000:
+        #     return {}
 
-        for x_coord in range(x1pa, x2pa, TILE_STEP):
-            for y_coord in range(y1pa, y2pa, TILE_STEP):
-                tile_box = (x_coord, y_coord, x_coord + TILE_SIZE, y_coord + TILE_SIZE)
+        # self._save_tile((x1pa, y1pa, x2pa, y2pa), dir_path=SMALL_WITH_TUMOR_IMAGES_DIR, ext='tif')
+        x = range(x1pa, x2pa, TILE_STEP)
+        y = range(y1pa, y2pa, TILE_STEP)
+        coords_to_extract = np.transpose([np.tile(x, len(y)), np.repeat(y, len(x))])
 
-                if self._is_intersected(polygon, tile_box=tile_box):
-                    bounding_boxes = self._calculate_local_bounding_boxes(polygon, tile_box)
-                    dir = LABELED_IMAGES_DIR
-                    dictionary = labeled_dict
-                    class_name = DEFAULT_CLASS_NAME
+        with ThreadPoolExecutor() as executor:
+            path_and_classes = executor.map(
+                lambda coords: self.save_training_example(*coords, polygon), coords_to_extract)
 
-                else:
-                    bounding_boxes = [(None, None, None, None)]
-                    dir = UNLABELED_IMAGES_DIR
-                    dictionary = unlabeled_dict
-                    class_name = BACKGROUND_CLASS_NAME
+        for class_name, image_path in path_and_classes:
+            dictionary[image_path].append(
+                Label(
+                    path=image_path,
+                    x1=None,
+                    y1=None,
+                    x2=None,
+                    y2=None,
+                    class_name=class_name))
 
-                image_path = self._save_tile(tile_box, dir_path=dir)
+        return dictionary
 
-                for bbox in bounding_boxes:
+    def save_training_example(self, x_coord, y_coord, polygon):
+        tile_box = (x_coord, y_coord, x_coord + TILE_SIZE, y_coord + TILE_SIZE)
+        if self._is_intersected(polygon, tile_box=tile_box):
+            dir = LABELED_IMAGES_DIR
+            class_name = DEFAULT_CLASS_NAME
 
-                    x1bb, y1bb, x2bb, y2bb = bbox
-                    dictionary[image_path].append(
-                        Label(
-                            path=image_path,
-                            x1=x1bb,
-                            y1=y1bb,
-                            x2=x2bb,
-                            y2=y2bb,
-                            class_name=class_name))
+        else:
+            dir = UNLABELED_IMAGES_DIR
+            class_name = BACKGROUND_CLASS_NAME
 
-        return labeled_dict, unlabeled_dict
+        image_path = self._save_tile(tile_box, dir_path=dir)
+        return class_name, image_path
 
     def _get_processing_area_for_polygon(self, polygon):
         x1, y1, x2, y2 =  self._get_bounding_box_for_polygon(polygon)
@@ -125,9 +125,6 @@ class Slide:
     def _is_intersected(self, polygon, tile_box):
         rect = box(*tile_box)
         return polygon.intersects(rect)
-        # x1, y1, x2, y2 = tile_box
-        # points = [(x1, y1), (x2, y1), (x1, y2), (x2, y2)]
-        # return any(map(lambda point_coords: polygon.contains(Point(*point_coords)), points))
 
     def _calculate_local_bounding_boxes(self, bbox, tile_box):
         poly = box(*tile_box).intersection(bbox)
