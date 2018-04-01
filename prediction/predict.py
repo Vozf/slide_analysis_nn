@@ -10,8 +10,6 @@ import numpy as np
 import tensorflow as tf
 
 from prediction.errors import ModelError, ImageError, PredictionResultError
-from keras_retinanet.models.resnet import custom_objects
-from keras_retinanet.utils.image import preprocess_image, resize_image
 
 from train.settings import (
     SNAPSHOTS_DIR,
@@ -37,7 +35,7 @@ class Predict():
             files = glob.iglob(self.snapshot_path+'/**', recursive=True)
             models = sorted(filter(lambda x: Predict.filter_models(x), files), key=os.path.getmtime)
             model_path = os.path.join(self.snapshot_path, models[- 1])
-            self.model = keras.models.load_model(model_path, custom_objects=custom_objects)
+            self.model = keras.models.load_model(model_path)
         except (IndexError, OSError) as error:
             print('Cannot load model: {0}'.format(error))
             raise ModelError
@@ -69,15 +67,12 @@ class Predict():
 
         initial_image = image
 
-        image = preprocess_image(image)
-        image, scale = resize_image(image)
 
         start = time.time()
         _, _, detections = self.model.predict_on_batch(np.expand_dims(image, axis=0))
         print("processing time: ", time.time() - start)
         predicted_labels = np.argmax(detections[0, :, 4:], axis=1)
         scores = detections[0, np.arange(detections.shape[1]), 4 + predicted_labels]
-        detections[0, :, :4] /= scale
 
         return Result(image=initial_image, predicted_labels=predicted_labels, scores=scores,
                       detections=detections)
