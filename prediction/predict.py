@@ -22,7 +22,7 @@ from utils.result import Result
 from prediction.predict_generator import PredictGenerator
 
 
-class Predict():
+class Predict:
     def __init__(self):
         self.snapshot_path = SNAPSHOTS_DIR
         self.labels = LABELS
@@ -57,25 +57,7 @@ class Predict():
 
         slide_generator.create_asap_annotations(predicted_labels, scores)
 
-        return scores, predicted_labels
-
-
-    def predict_tile(self, image):
-        if not isinstance(image, np.ndarray):
-            print('Image is wrong')
-            raise ImageError
-
-        initial_image = image
-
-
-        start = time.time()
-        _, _, detections = self.model.predict_on_batch(np.expand_dims(image, axis=0))
-        print("processing time: ", time.time() - start)
-        predicted_labels = np.argmax(detections[0, :, 4:], axis=1)
-        scores = detections[0, np.arange(detections.shape[1]), 4 + predicted_labels]
-
-        return Result(image=initial_image, predicted_labels=predicted_labels, scores=scores,
-                      detections=detections)
+        return predicted_labels, scores
 
     def visualise(self, predicted_result, image_format=BRG_IMAGE_FORMAT):
         if not isinstance(predicted_result, Result):
@@ -118,7 +100,8 @@ class Predict():
 
 def main():
     predict_example = Predict()
-    predicted_results = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/small_with_tumor_images/Tumor_001.tif_69273:131110:72911:135232.tif')
+    # predicted_results = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/slide_images/Tumor_016.tif')
+    predicted_results = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/small_with_tumor_images/Tumor_044.tif_67170:143266:69380:146408.tif')
     # image = read_image_bgr('path/to/image')
     # predicted_result = predict_example.predict_tile(image)
     # final_images = [predict_example.visualise(predicted_result, BRG_IMAGE_FORMAT) for predicted_result in predicted_results]

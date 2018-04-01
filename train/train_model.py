@@ -44,16 +44,10 @@ class Train(GPUSupportMixin):
         self.gpu_ids = self._get_available_gpus()
         self.set_up_gpu(self.gpu_ids)
 
-        self.train_annotations = TRAIN_DATASET_FILE_PATH
-        self.test_annotations = TEST_DATASET_FILE_PATH
-        self.classes = CLASS_MAPPING_FILE_PATH
-        self.epochs = EPOCHS
-        self.batch_size = BATCH_SIZE
-
-        if len(self.gpu_ids) > 1 and self.batch_size < len(self.gpu_ids):
+        if len(self.gpu_ids) > 1 and BATCH_SIZE < len(self.gpu_ids):
             raise ValueError(
                 "Batch size ({}) must be equal to or higher than the number of GPUs ({})".format(
-                    self.batch_size,
+                    BATCH_SIZE,
                     len(self.gpu_ids))
             )
 
@@ -70,15 +64,13 @@ class Train(GPUSupportMixin):
 
     def _create_generators(self):
         train_generator = Generator(
-            self.train_annotations,
-            self.classes,
-            batch_size=self.batch_size,
+            TRAIN_DATASET_FILE_PATH,
+            batch_size=BATCH_SIZE,
         )
 
         validation_generator = Generator(
-            self.test_annotations,
-            self.classes,
-            batch_size=self.batch_size,
+            TEST_DATASET_FILE_PATH,
+            batch_size=BATCH_SIZE,
         )
 
         return train_generator, validation_generator
@@ -169,7 +161,7 @@ class Train(GPUSupportMixin):
         model.fit_generator(
             generator=train_generator,
             steps_per_epoch=train_steps,
-            epochs=self.epochs,
+            epochs=EPOCHS,
             validation_data=validation_generator,
             validation_steps=val_steps,
             callbacks=callbacks,
