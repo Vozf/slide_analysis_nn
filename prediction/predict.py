@@ -43,11 +43,6 @@ class Predict:
 
         return predicted_labels, scores
 
-    @staticmethod
-    def filter_models(filename):
-        if '.h5' in filename:
-            return filename
-
 
 def main():
     predict_example = Predict()
