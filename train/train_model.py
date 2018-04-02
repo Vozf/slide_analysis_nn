@@ -11,7 +11,6 @@ from keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten
 from train.datasets_preparation.preparation import DatasetPreparation
 from train.generator import Generator
 from keras.utils import multi_gpu_model
-from tensorflow.python.framework.graph_util import convert_variables_to_constants
 
 
 from train.callbacks import (
@@ -19,7 +18,6 @@ from train.callbacks import (
     BestModelCheckpoint,
 )
 from train.datasets_preparation.settings import (
-    CLASS_MAPPING_FILE_PATH,
     TRAIN_DATASET_FILE_PATH,
     TEST_DATASET_FILE_PATH
 )
@@ -33,7 +31,7 @@ from train.settings import (
     MIN_DELTA,
     PATIENCE
 )
-from utils.constants import TILE_SIZE, TILE_SHAPE
+from utils.constants import TILE_SHAPE
 from utils.mixins import GPUSupportMixin
 
 
@@ -169,9 +167,9 @@ class Train(GPUSupportMixin):
 
 
 def main():
-    # dataset_preparation = DatasetPreparation()
-    # dataset_preparation.populate_prepared_datasets()
-
+    dataset_preparation = DatasetPreparation()
+    dataset_preparation.populate_prepared_datasets()
+    #
     train = Train()
     train.start_training()
 

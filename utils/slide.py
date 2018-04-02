@@ -1,4 +1,3 @@
-from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 
 from shapely.geometry import Polygon, box
@@ -15,7 +14,6 @@ from train.datasets_preparation.settings import (
 from utils.constants import TILE_SIZE, TILE_STEP, AREA_PROCESSING_MULTIPLIER
 import numpy as np
 from os.path import basename, join
-from train.datasets_preparation.utils import Label
 from matplotlib import pyplot as plt
 
 from utils.functions import dict_assign
@@ -68,12 +66,12 @@ class Slide:
 
     def _process_polygon(self, polygon):
         print(self._get_bounding_box_for_polygon(polygon), self._get_processing_area_for_polygon(polygon))
-        dictionary = defaultdict(list)
+        dictionary = {}
 
         x1pa, y1pa, x2pa, y2pa = self._get_processing_area_for_polygon(polygon)
 
-        # if x2pa - x1pa > 30000:
-        #     return {}
+        if x2pa - x1pa > 10000:
+            return {}
 
         # self._save_tile((x1pa, y1pa, x2pa, y2pa), dir_path=SMALL_WITH_TUMOR_IMAGES_DIR, ext='tif')
         x = range(x1pa, x2pa, TILE_STEP)
@@ -85,14 +83,7 @@ class Slide:
                 lambda coords: self.save_training_example(*coords, polygon), coords_to_extract)
 
         for class_name, image_path in path_and_classes:
-            dictionary[image_path].append(
-                Label(
-                    path=image_path,
-                    x1=None,
-                    y1=None,
-                    x2=None,
-                    y2=None,
-                    class_name=class_name))
+            dictionary[image_path] = class_name
 
         return dictionary
 

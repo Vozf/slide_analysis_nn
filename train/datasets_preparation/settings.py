@@ -2,10 +2,6 @@ import os
 
 from train.settings import PROJECT_PATH
 
-AUGMENTATION_PERCENT = 0.5
-AUGMENTED_IMAGES_DIR = os.path.join(PROJECT_PATH, 'datasets', 'source', 'augmented_images')
-
-
 LABELED_IMAGES_DIR = os.path.join(PROJECT_PATH, 'datasets', 'source', 'labeled_images')
 
 TRAIN_DATASET_PERCENT = 0.7
