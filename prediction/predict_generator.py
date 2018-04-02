@@ -1,5 +1,6 @@
 import cProfile
 
+import datetime
 import numpy as np
 import keras
 import time
@@ -22,17 +23,20 @@ class PredictGenerator(keras.utils.Sequence):
         self.addresses = np.transpose([np.tile(x, len(y)), np.repeat(y, len(x))])
         self.label_names_to_id = DatasetPreparation.get_label_name_to_label_id_dict()
 
-        self.times = [time.time()]
-        self.diffs = []
+        self.times = [time.time()]*5
+        self.diffs = [time.time()]*5
 
     def __len__(self):
-        return int(np.floor(len(self.addresses) / self.batch_size))
+        return int(np.ceil(len(self.addresses) / self.batch_size))
 
     def __getitem__(self, index):
         if isinstance(index, slice):
             return [self[i] for i in range(index.start, index.stop, index.step)]
 
         self.diffs.append(time.time() - self.times[-1])
+
+        self.diffs.pop(0)
+        self.times.pop(0)
 
 
         print(str(index) + ':' + str(len(self)))
@@ -42,7 +46,11 @@ class PredictGenerator(keras.utils.Sequence):
         X = self.__data_generation(addresses)
 
         self.times.append(time.time())
-        print(self.diffs[-5:])
+        print(self.diffs)
+        mean = sum(self.diffs) / float(len(self.diffs))
+        rem_ex = len(self) - index
+
+        print('est = {}'.format(datetime.timedelta(seconds=mean*rem_ex)))
 
         return X, np.zeros(len(X))
 
