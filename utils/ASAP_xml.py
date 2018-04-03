@@ -30,7 +30,7 @@ def write_polygons_xml(polygons, predicted_labels, scores, xml_path):
 
 def _create_polygon(anns, polygon, label, score, i):
     ann = ET.SubElement(anns, "Annotation", Name="{0}_({1})".format(i, score), Type="Polygon",
-                        label=str(label), Color=_get_hex_from_score(score), PartOfGroup="None",
+                        label=str(label), Color=_get_hex_color_from_score(score), PartOfGroup="None",
                         score=score)
     coords = ET.SubElement(ann, "Coordinates")
 
@@ -39,7 +39,7 @@ def _create_polygon(anns, polygon, label, score, i):
      enumerate(polygon)]
 
 
-def _get_hex_from_score(score):
+def _get_hex_color_from_score(score):
     rgb0_1 = colorsys.hls_to_rgb((1 - score) * 84 / 255, 0.5, 0.5)
     rgb0_255 = [int(x * 255) for x in rgb0_1]
     return '#%02x%02x%02x' % tuple(rgb0_255)

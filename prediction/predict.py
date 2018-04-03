@@ -2,6 +2,7 @@ import glob
 import os
 import time
 
+import cv2
 import keras
 import numpy as np
 import tensorflow as tf
@@ -39,19 +40,34 @@ class Predict:
         print(time.time() - start, 'sup')
 
         predicted_labels = np.argmax(scores, axis=1)
-        scores = scores[np.arange(scores.shape[0]), predicted_labels]
+        predicted_labels_scores = scores[np.arange(scores.shape[0]), predicted_labels]
 
-        return PredictionResult(slide_generator, predicted_labels, scores)
+        return PredictionResult(slide_path,
+                                predicted_labels=predicted_labels,
+                                scores=predicted_labels_scores,
+                                tile_coordinates=slide_generator.addresses)
+
+    def predict_image(self, image_path):
+        image = cv2.imread(image_path, cv2.IMREAD_COLOR)[..., :3]
+
+        scores = self.model.predict_on_batch(np.expand_dims(image, axis=0))
+
+        predicted_labels = np.argmax(scores, axis=1)
+        predicted_labels_scores = scores[np.arange(scores.shape[0]), predicted_labels]
+
+        return PredictionResult(image_path,
+                                predicted_labels=predicted_labels,
+                                scores=predicted_labels_scores)
+
 
 
 def main():
     predict_example = Predict()
-    prediction = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/small_with_tumor_images/Tumor_044.tif_62818:129066:70031:138983.tif')
+    prediction = predict_example.predict_image('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/unlabeled_images/Tumor_015.tif_50892:169622:51148:169878.png')
+    print(prediction)
+    # prediction = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/small_with_tumor_images/Tumor_044.tif_62818:129066:70031:138983.tif')
 
-    prediction.create_asap_annotations()
-
-    # predicted_results = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/small_with_tumor_images/Tumor_044.tif_67170:143266:69380:146408.tif')
-
+    # prediction.create_asap_annotations()
 
 if __name__ == '__main__':
     main()
