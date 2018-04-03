@@ -60,7 +60,6 @@ class Predict:
                                 scores=predicted_labels_scores)
 
 
-
 def main():
     predict_example = Predict()
     prediction = predict_example.predict_image('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/unlabeled_images/Tumor_015.tif_50892:169622:51148:169878.png')

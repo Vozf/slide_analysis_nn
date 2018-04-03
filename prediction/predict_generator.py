@@ -4,7 +4,7 @@ import time
 import keras
 import numpy as np
 
-from train.datasets_preparation.preparation import DatasetPreparation
+from train.datasets_preparation import DatasetPreparation
 from utils.constants import TILE_SIZE, TILE_STEP
 from utils.slide import Slide
 

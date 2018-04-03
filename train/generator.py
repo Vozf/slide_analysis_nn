@@ -2,11 +2,11 @@ import csv
 from concurrent.futures import ThreadPoolExecutor
 
 import cv2
-import numpy as np
 import keras
+import numpy as np
 from keras.utils import to_categorical
 
-from train.datasets_preparation.preparation import DatasetPreparation
+from train.datasets_preparation import DatasetPreparation
 
 
 class Generator(keras.utils.Sequence):

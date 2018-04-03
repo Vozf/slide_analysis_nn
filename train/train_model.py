@@ -3,20 +3,15 @@ import os
 
 import keras
 import tensorflow
-
-from train.callbacks import TB
-from keras.models import Sequential
 from keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten
+from keras.models import Sequential
 
-from train.datasets_preparation.preparation import DatasetPreparation
-from train.generator import Generator
-from keras.utils import multi_gpu_model
-
-
+from train import Generator
 from train.callbacks import (
-    TensorGraphConverter,
     BestModelCheckpoint,
 )
+from train.callbacks import TB
+from train.datasets_preparation import DatasetPreparation
 from train.datasets_preparation.settings import (
     TRAIN_DATASET_FILE_PATH,
     TEST_DATASET_FILE_PATH
@@ -27,9 +22,7 @@ from train.settings import (
     BATCH_SIZE,
     TRAIN_STEPS,
     VALIDATION_STEPS,
-    TF_BOARD_LOGS_DIR,
-    MIN_DELTA,
-    PATIENCE
+    TF_BOARD_LOGS_DIR
 )
 from utils.constants import TILE_SHAPE
 from utils.mixins import GPUSupportMixin

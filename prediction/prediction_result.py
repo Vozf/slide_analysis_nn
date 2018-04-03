@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 
-from train.datasets_preparation.preparation import DatasetPreparation
+from train.datasets_preparation import DatasetPreparation
 from train.datasets_preparation.settings import DEFAULT_CLASS_NAME
 from utils.ASAP_xml import write_polygons_xml
 from utils.constants import TILE_SIZE
