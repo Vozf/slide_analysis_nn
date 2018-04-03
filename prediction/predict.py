@@ -1,14 +1,16 @@
 import glob
 import os
 import time
+
 import keras
 import numpy as np
 import tensorflow as tf
 
+from prediction import PredictGenerator
+from prediction import PredictionResult
 from train.settings import (
     SNAPSHOTS_DIR,
     BATCH_SIZE)
-from prediction.predict_generator import PredictGenerator
 
 
 class Predict:
@@ -39,14 +41,15 @@ class Predict:
         predicted_labels = np.argmax(scores, axis=1)
         scores = scores[np.arange(scores.shape[0]), predicted_labels]
 
-        slide_generator.create_asap_annotations(predicted_labels, scores)
-
-        return predicted_labels, scores
+        return PredictionResult(slide_generator, predicted_labels, scores)
 
 
 def main():
     predict_example = Predict()
-    predicted_results = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/small_with_tumor_images/Tumor_044.tif_62818:129066:70031:138983.tif')
+    prediction = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/small_with_tumor_images/Tumor_044.tif_62818:129066:70031:138983.tif')
+
+    prediction.create_asap_annotations()
+
     # predicted_results = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/small_with_tumor_images/Tumor_044.tif_67170:143266:69380:146408.tif')
 
 

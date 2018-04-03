@@ -1,14 +1,10 @@
-import cProfile
-
 import datetime
-import numpy as np
-import keras
 import time
-import os
+
+import keras
+import numpy as np
 
 from train.datasets_preparation.preparation import DatasetPreparation
-from train.datasets_preparation.settings import DEFAULT_CLASS_NAME
-from utils.ASAP_xml import write_polygons_xml
 from utils.constants import TILE_SIZE, TILE_STEP
 from utils.slide import Slide
 
@@ -38,7 +34,6 @@ class PredictGenerator(keras.utils.Sequence):
         self.diffs.pop(0)
         self.times.pop(0)
 
-
         print(str(index) + ':' + str(len(self)))
 
         addresses = self.addresses[index * self.batch_size:(index + 1) * self.batch_size]
@@ -57,15 +52,3 @@ class PredictGenerator(keras.utils.Sequence):
     def __data_generation(self, addresses):
         return np.asarray(
             [np.asarray(self.slide.cut_tile(*add))[..., :3] for add in addresses]) / 255
-
-    def create_asap_annotations(self, predicted_labels, scores):
-        xml_path = '{}_predicted.xml'.format(os.path.splitext(self.slide.slide_path)[0])
-        polygons = np.asarray([
-            [(x1, y1), (x1 + TILE_SIZE, y1), (x1 + TILE_SIZE, y1 + TILE_SIZE), (x1, y1 + TILE_SIZE)]
-            for (x1, y1) in self.addresses])
-
-        chosen_idx = predicted_labels == self.label_names_to_id[DEFAULT_CLASS_NAME]
-
-        return write_polygons_xml(polygons[chosen_idx],
-                                  predicted_labels=predicted_labels[chosen_idx],
-                                  scores=scores[chosen_idx], xml_path=xml_path)
