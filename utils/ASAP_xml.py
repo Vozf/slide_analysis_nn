@@ -30,7 +30,7 @@ def write_polygons_xml(polygons, predicted_labels, scores, xml_path):
 
 def _create_polygon(anns, polygon, label, score, i):
     ann = ET.SubElement(anns, "Annotation", Name="{0}_({1})".format(i, score), Type="Polygon",
-                        label=str(label), Color=_get_hex_from_score(score))
+                        label=str(label), Color=_get_hex_from_score(score), PartOfGroup="None")
     coords = ET.SubElement(ann, "Coordinates")
 
     [ET.SubElement(coords, "Coordinate", Order=str(idx), X=str(point[0]), Y=str(point[1])) for
