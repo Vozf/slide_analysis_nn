@@ -7,9 +7,7 @@ from keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten
 from keras.models import Sequential
 
 from train import Generator
-from train.callbacks import (
-    BestModelCheckpoint,
-)
+from train.callbacks import BestModelCheckpoint
 from train.callbacks import TB
 from train.datasets_preparation import DatasetPreparation
 from train.datasets_preparation.settings import (
