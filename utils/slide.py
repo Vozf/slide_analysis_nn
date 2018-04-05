@@ -1,21 +1,20 @@
+import os
 from concurrent.futures import ThreadPoolExecutor
+from os.path import basename, join
 
-from shapely.geometry import Polygon, box
-
+import numpy as np
+from matplotlib import pyplot as plt
 from openslide import open_slide
+from shapely.geometry import Polygon, box
 
 from train.datasets_preparation.settings import (
     DEFAULT_CLASS_NAME,
     BACKGROUND_CLASS_NAME,
     UNLABELED_IMAGES_DIR,
-    LABELED_IMAGES_DIR,
-    SMALL_WITH_TUMOR_IMAGES_DIR
+    LABELED_IMAGES_DIR
 )
+from utils.ASAP_xml import append_polygons_to_existing_xml
 from utils.constants import TILE_SIZE, TILE_STEP, AREA_PROCESSING_MULTIPLIER
-import numpy as np
-from os.path import basename, join
-from matplotlib import pyplot as plt
-
 from utils.functions import dict_assign
 
 
@@ -36,6 +35,17 @@ class Slide:
 
         with ThreadPoolExecutor() as executor:
             dicts = list(executor.map(self._process_polygon, filtered_shapely_polygons))
+
+
+        xml_path = '{}_cut.xml'.format(os.path.splitext(self.slide_path)[0])
+        truth_xml_path = '{}.xml'.format(os.path.splitext(self.slide_path)[0])
+
+        append_polygons_to_existing_xml(self.labeled + self.unlabeled,
+                                        predicted_labels=[1]*(len(self.labeled)) + [0]*len(self.unlabeled),
+                                        scores=[1]*(len(self.labeled)) + [0]*len(self.unlabeled),
+                                        source_xml_path=truth_xml_path,
+                                        output_xml_path=xml_path)
+
 
         return dict_assign({}, *dicts)
 
@@ -90,10 +100,12 @@ class Slide:
     def save_training_example(self, x_coord, y_coord, polygon):
         tile_box = (x_coord, y_coord, x_coord + TILE_SIZE, y_coord + TILE_SIZE)
         if self._is_intersected(polygon, tile_box=tile_box):
+            self.labeled.append(((tile_box[0],tile_box[1]),(tile_box[2], tile_box[3])))
             dir = LABELED_IMAGES_DIR
             class_name = DEFAULT_CLASS_NAME
 
         else:
+            self.unlabeled.append(((tile_box[0],tile_box[1]),(tile_box[2], tile_box[3])))
             dir = UNLABELED_IMAGES_DIR
             class_name = BACKGROUND_CLASS_NAME
 
