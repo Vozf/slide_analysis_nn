@@ -15,7 +15,7 @@ class Generator(keras.utils.Sequence):
 
         with open(data_path, 'r') as csvfile:
             reader = csv.reader(csvfile)
-            self.data = np.asarray([(row[0], row[-1]) for row in reader])
+            self.data = np.asarray(list(reader))
 
         self.labels_names_to_id = DatasetPreparation.get_label_name_to_label_id_dict()
 
@@ -23,7 +23,7 @@ class Generator(keras.utils.Sequence):
         return len(self.labels_names_to_id)
 
     def __len__(self):
-        return int(np.floor(len(self.data) / self.batch_size))
+        return int(np.ceil(len(self.data) / self.batch_size))
 
     def __getitem__(self, index):
         if isinstance(index, slice):

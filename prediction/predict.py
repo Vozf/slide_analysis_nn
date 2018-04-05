@@ -32,8 +32,9 @@ class Predict:
         config.gpu_options.allow_growth = True
         self.session = tf.Session(config=config)
 
-    def predict_slide(self, slide_path):
-        slide_generator = PredictGenerator(slide_path, batch_size=BATCH_SIZE)
+    def predict_slide(self, slide_path, area_to_predict=None):
+        slide_generator = PredictGenerator(slide_path, batch_size=BATCH_SIZE,
+                                           area_to_predict=area_to_predict)
         print('predict')
         start = time.time()
         scores = self.model.predict_generator(slide_generator)
@@ -62,9 +63,10 @@ class Predict:
 
 def main():
     predict_example = Predict()
-    prediction = predict_example.predict_image('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/unlabeled_images/Tumor_015.tif_50892:169622:51148:169878.png')
+    # prediction = predict_example.predict_image('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/unlabeled_images/Tumor_015.tif_50892:169622:51148:169878.png')
+    prediction = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/slide_images/Tumor_001.tif', area_to_predict=((66500, 130000), (73300, 137000)))
+    prediction.save_as_asap_annotations(truth_xml_path='/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/slide_images/Tumor_001_true.xml')
     print(prediction)
-    # prediction = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/small_with_tumor_images/Tumor_044.tif_62818:129066:70031:138983.tif')
 
     # prediction.create_asap_annotations()
 
