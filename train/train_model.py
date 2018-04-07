@@ -1,3 +1,4 @@
+import glob
 import logging
 import os
 
@@ -131,7 +132,13 @@ class Train(GPUSupportMixin):
 
         return callbacks
 
-    def start_training(self):
+    def _load_model(self):
+        files = glob.iglob(self.snapshot_path+'/*/*.h5')
+        models = sorted(files, key=os.path.getmtime)
+        model_path = os.path.join(self.snapshot_path, models[-1])
+        return keras.models.load_model(model_path)
+
+    def start_training(self, continue_train=False):
         keras.backend.tensorflow_backend.set_session(self._get_session())
 
         train_generator, validation_generator = self._create_generators()
@@ -139,8 +146,7 @@ class Train(GPUSupportMixin):
         train_steps = TRAIN_STEPS if TRAIN_STEPS is not None else len(train_generator)
         val_steps = VALIDATION_STEPS if VALIDATION_STEPS is not None else len(validation_generator)
 
-        model = self._create_model(
-            num_classes=train_generator.num_classes())
+        model = self._load_model() if continue_train else self._create_model(num_classes=train_generator.num_classes())
 
         self.log.info(model.summary())
 
@@ -161,8 +167,8 @@ def main():
     dataset_preparation = DatasetPreparation()
     dataset_preparation.populate_prepared_datasets()
     #
-    train = Train()
-    train.start_training()
+    # train = Train()
+    # train.start_training(continue_train=True)
 
 
 if __name__ == '__main__':

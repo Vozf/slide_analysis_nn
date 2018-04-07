@@ -1,21 +1,18 @@
 from concurrent.futures import ThreadPoolExecutor
+from os.path import basename, join
 
-from shapely.geometry import Polygon, box
-
+import numpy as np
+from matplotlib import pyplot as plt
 from openslide import open_slide
+from shapely.geometry import Polygon, box
 
 from train.datasets_preparation.settings import (
     DEFAULT_CLASS_NAME,
     BACKGROUND_CLASS_NAME,
     UNLABELED_IMAGES_DIR,
-    LABELED_IMAGES_DIR,
-    SMALL_WITH_TUMOR_IMAGES_DIR
+    LABELED_IMAGES_DIR
 )
 from utils.constants import TILE_SIZE, TILE_STEP, AREA_PROCESSING_MULTIPLIER
-import numpy as np
-from os.path import basename, join
-from matplotlib import pyplot as plt
-
 from utils.functions import dict_assign
 
 
@@ -70,8 +67,8 @@ class Slide:
 
         x1pa, y1pa, x2pa, y2pa = self._get_processing_area_for_polygon(polygon)
 
-        if x2pa - x1pa > 10000:
-            return {}
+        # if x2pa - x1pa > 10000:
+        #     return {}
 
         # self._save_tile((x1pa, y1pa, x2pa, y2pa), dir_path=SMALL_WITH_TUMOR_IMAGES_DIR, ext='tif')
         x = range(x1pa, x2pa, TILE_STEP)
