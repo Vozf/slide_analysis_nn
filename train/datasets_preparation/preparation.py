@@ -1,13 +1,11 @@
 import csv
 import glob
 import itertools
+import logging
 import os
 import random
 import time
-import logging
-
-from utils.ASAP_xml import read_polygons_xml
-from utils.slide import Slide
+from collections import Counter
 
 from train.datasets_preparation.settings import (
     LABELED_IMAGES_DIR,
@@ -18,6 +16,8 @@ from train.datasets_preparation.settings import (
     CLASS_MAPPING_FILE_PATH,
     SLIDE_IMAGES_DIR
 )
+from utils.ASAP_xml import read_polygons_xml
+from utils.slide import Slide
 
 
 class DatasetPreparation(object):
@@ -79,6 +79,13 @@ class DatasetPreparation(object):
         dicts = self._prepare_slides_for_training()
 
         train_prepared, val_prepared = self._divide_to_train_and_validation(dicts)
+
+        train_distribution = {k: v / len(train_prepared) for k, v in
+                              Counter(train_prepared.values()).items()}
+        val_distribution = {k: v / len(val_prepared) for k, v in
+                            Counter(val_prepared.values()).items()}
+        print('train data distribution:', train_distribution)
+        print('validation data distribution:', val_distribution)
 
         shuffled_train = list(train_prepared.keys())
         random.shuffle(shuffled_train)

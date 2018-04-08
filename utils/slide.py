@@ -1,21 +1,18 @@
 from concurrent.futures import ThreadPoolExecutor
+from os.path import basename, join
 
-from shapely.geometry import Polygon, box
-
+import numpy as np
+from matplotlib import pyplot as plt
 from openslide import open_slide
+from shapely.geometry import Polygon, MultiPolygon, box
 
 from train.datasets_preparation.settings import (
     DEFAULT_CLASS_NAME,
     BACKGROUND_CLASS_NAME,
     UNLABELED_IMAGES_DIR,
-    LABELED_IMAGES_DIR,
-    SMALL_WITH_TUMOR_IMAGES_DIR
+    LABELED_IMAGES_DIR
 )
 from utils.constants import TILE_SIZE, TILE_STEP, AREA_PROCESSING_MULTIPLIER
-import numpy as np
-from os.path import basename, join
-from matplotlib import pyplot as plt
-
 from utils.functions import dict_assign
 
 
@@ -32,10 +29,12 @@ class Slide:
 
         shapely_poly = [self._create_shapely_polygon(poly, draw_invalid_polygons) for poly in
                         bounding_box_polygons]
-        filtered_shapely_polygons = filter(None, np.hstack(shapely_poly))
+        global_multipolygon = MultiPolygon(filter(None, np.hstack(shapely_poly)))
 
         with ThreadPoolExecutor() as executor:
-            dicts = list(executor.map(self._process_polygon, filtered_shapely_polygons))
+            dicts = list(executor.map(
+                lambda current_polygon: self._process_polygon(current_polygon, global_multipolygon),
+                global_multipolygon))
 
         return dict_assign({}, *dicts)
 
@@ -64,14 +63,14 @@ class Slide:
 
         return None
 
-    def _process_polygon(self, polygon):
-        print(self._get_bounding_box_for_polygon(polygon), self._get_processing_area_for_polygon(polygon))
+    def _process_polygon(self, current_polygon, global_multipolygon):
+        print(self._get_bounding_box_for_polygon(current_polygon), self._get_processing_area_for_polygon(current_polygon))
         dictionary = {}
 
-        x1pa, y1pa, x2pa, y2pa = self._get_processing_area_for_polygon(polygon)
+        x1pa, y1pa, x2pa, y2pa = self._get_processing_area_for_polygon(current_polygon)
 
-        if x2pa - x1pa > 10000:
-            return {}
+        # if x2pa - x1pa > 10000:
+        #     return {}
 
         # self._save_tile((x1pa, y1pa, x2pa, y2pa), dir_path=SMALL_WITH_TUMOR_IMAGES_DIR, ext='tif')
         x = range(x1pa, x2pa, TILE_STEP)
@@ -80,16 +79,16 @@ class Slide:
 
         with ThreadPoolExecutor() as executor:
             path_and_classes = executor.map(
-                lambda coords: self.save_training_example(*coords, polygon), coords_to_extract)
+                lambda coords: self.save_training_example(*coords, global_multipolygon), coords_to_extract)
 
         for class_name, image_path in path_and_classes:
             dictionary[image_path] = class_name
 
         return dictionary
 
-    def save_training_example(self, x_coord, y_coord, polygon):
+    def save_training_example(self, x_coord, y_coord, global_multipolygon):
         tile_box = (x_coord, y_coord, x_coord + TILE_SIZE, y_coord + TILE_SIZE)
-        if self._is_intersected(polygon, tile_box=tile_box):
+        if self._is_intersected(global_multipolygon, tile_box=tile_box):
             dir = LABELED_IMAGES_DIR
             class_name = DEFAULT_CLASS_NAME
 

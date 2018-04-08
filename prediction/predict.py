@@ -1,14 +1,17 @@
 import glob
 import os
 import time
+
+import cv2
 import keras
 import numpy as np
 import tensorflow as tf
 
+from prediction import PredictGenerator
+from prediction import PredictionResult
 from train.settings import (
     SNAPSHOTS_DIR,
     BATCH_SIZE)
-from prediction.predict_generator import PredictGenerator
 
 
 class Predict:
@@ -29,26 +32,43 @@ class Predict:
         config.gpu_options.allow_growth = True
         self.session = tf.Session(config=config)
 
-    def predict_slide(self, slide_path):
-        slide_generator = PredictGenerator(slide_path, batch_size=BATCH_SIZE)
+    def predict_slide(self, slide_path, area_to_predict=None):
+        slide_generator = PredictGenerator(slide_path, batch_size=BATCH_SIZE,
+                                           area_to_predict=area_to_predict)
         print('predict')
         start = time.time()
         scores = self.model.predict_generator(slide_generator)
         print(time.time() - start, 'sup')
 
         predicted_labels = np.argmax(scores, axis=1)
-        scores = scores[np.arange(scores.shape[0]), predicted_labels]
+        predicted_labels_scores = scores[np.arange(scores.shape[0]), predicted_labels]
 
-        slide_generator.create_asap_annotations(predicted_labels, scores)
+        return PredictionResult(slide_path,
+                                predicted_labels=predicted_labels,
+                                scores=predicted_labels_scores,
+                                tile_coordinates=slide_generator.addresses)
 
-        return predicted_labels, scores
+    def predict_image(self, image_path):
+        image = cv2.imread(image_path, cv2.IMREAD_COLOR)[..., :3]
+
+        scores = self.model.predict_on_batch(np.expand_dims(image, axis=0))
+
+        predicted_labels = np.argmax(scores, axis=1)
+        predicted_labels_scores = scores[np.arange(scores.shape[0]), predicted_labels]
+
+        return PredictionResult(image_path,
+                                predicted_labels=predicted_labels,
+                                scores=predicted_labels_scores)
 
 
 def main():
     predict_example = Predict()
-    predicted_results = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/small_with_tumor_images/Tumor_044.tif_62818:129066:70031:138983.tif')
-    # predicted_results = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/small_with_tumor_images/Tumor_044.tif_67170:143266:69380:146408.tif')
+    # prediction = predict_example.predict_image('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/unlabeled_images/Tumor_015.tif_50892:169622:51148:169878.png')
+    prediction = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/slide_images/Tumor_001.tif', area_to_predict=((66500, 130000), (73300, 137000)))
+    prediction.save_as_asap_annotations(truth_xml_path='/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/slide_images/Tumor_001_true.xml')
+    print(prediction)
 
+    # prediction.create_asap_annotations()
 
 if __name__ == '__main__':
     main()
