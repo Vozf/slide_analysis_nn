@@ -16,6 +16,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       wget && \
     rm -rf /var/lib/apt/lists/*
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openslide-tools
+
 # Install conda
 ENV CONDA_DIR /opt/conda
 ENV PATH $CONDA_DIR/bin:$PATH
@@ -63,11 +66,21 @@ RUN conda install -y python=${python_version} && \
     pip install git+git://github.com/keras-team/keras.git && \
     conda clean -yt
 
-ADD theanorc /home/keras/.theanorc
+RUN pip install \
+    matplotlib==2.1.2 \
+    werkzeug==0.14.1 \
+    tensorflow==1.5.0 \
+    opencv-python==3.4.0.12 \
+    falcon==1.4.1 \
+    numpy==1.14.2 \
+    openslide-python \
+    shapely==1.6.4.post1
+
+#ADD theanorc /home/keras/.theanorc
 
 ENV PYTHONPATH='/src/:$PYTHONPATH'
 
-WORKDIR /src
+WORKDIR /src/workspace/slide-analysis-nn
 
 EXPOSE 8888
 
