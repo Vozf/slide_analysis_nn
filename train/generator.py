@@ -14,8 +14,11 @@ class Generator(keras.utils.Sequence):
         self.batch_size = batch_size
 
         with open(data_path, 'r') as csvfile:
-            reader = csv.reader(csvfile)
-            self.data = np.asarray(list(reader))
+            file = list(csv.reader(csvfile))
+            self.data = np.asarray(file)
+
+        if not self.data.shape[1]:
+            raise Exception('Empty csv file')
 
         self.labels_names_to_id = DatasetPreparation.get_label_name_to_label_id_dict()
 
