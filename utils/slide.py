@@ -100,7 +100,7 @@ class Slide:
         return class_name, image_path
 
     def _get_processing_area_for_polygon(self, polygon):
-        x1, y1, x2, y2 =  self._get_bounding_box_for_polygon(polygon)
+        x1, y1, x2, y2 = self._get_bounding_box_for_polygon(polygon)
 
         # enlarge_area_x = int(AREA_PROCESSING_MULTIPLIER * TILE_SIZE)
         # enlarge_area_y = int(AREA_PROCESSING_MULTIPLIER * TILE_SIZE)
