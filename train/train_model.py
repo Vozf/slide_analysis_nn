@@ -103,7 +103,8 @@ class Train(GPUSupportMixin):
         # save the prediction model
         checkpoint = BestModelCheckpoint(
             os.path.join(self.snapshot_path, 'slide_analysis_{epoch:02d}_{val_loss:.2f}.h5'),
-            verbose=1, monitor='val_loss', save_best_only=True, mode='min'
+            verbose=1,
+            # monitor='val_loss', save_best_only=True, mode='min'
         )
         callbacks.append(checkpoint)
 
@@ -133,7 +134,7 @@ class Train(GPUSupportMixin):
         return callbacks
 
     def _load_model(self):
-        files = glob.iglob(self.snapshot_path+'/*/*.h5')
+        files = glob.iglob(self.snapshot_path+'/../*/*.h5')
         models = sorted(files, key=os.path.getmtime)
         model_path = os.path.join(self.snapshot_path, models[-1])
         return keras.models.load_model(model_path)
@@ -157,6 +158,7 @@ class Train(GPUSupportMixin):
             generator=train_generator,
             steps_per_epoch=train_steps,
             epochs=EPOCHS,
+            class_weight={0: 10, 1: 1},
             validation_data=validation_generator,
             validation_steps=val_steps,
             callbacks=callbacks,
@@ -166,9 +168,9 @@ class Train(GPUSupportMixin):
 def main():
     dataset_preparation = DatasetPreparation()
     dataset_preparation.populate_prepared_datasets()
-    #
-    # train = Train()
-    # train.start_training(continue_train=True)
+
+    train = Train()
+    train.start_training(continue_train=True)
 
 
 if __name__ == '__main__':
