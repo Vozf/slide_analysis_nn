@@ -4,7 +4,7 @@ from train.settings import PROJECT_PATH
 
 LABELED_IMAGES_DIR = os.path.join(PROJECT_PATH, 'datasets', 'source', 'labeled_images')
 
-TRAIN_DATASET_PERCENT = 0.7
+TRAIN_DATASET_PERCENT = 0.9
 
 UNLABELED_IMAGES_DIR = os.path.join(PROJECT_PATH, 'datasets', 'source', 'unlabeled_images')
 
