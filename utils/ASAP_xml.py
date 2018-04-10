@@ -16,16 +16,31 @@ def read_polygons_xml(xml_path):
     return polygons
 
 
-def write_polygons_xml(polygons, predicted_labels, scores, xml_path):
+def create_polygons_xml(polygons, predicted_labels, scores, xml_path):
     root = ET.Element("ASAP_Annotations")
-    anns = ET.SubElement(root, "Annotations")
+    ET.SubElement(root, "Annotations")
 
-    [_create_polygon(anns, polygon, label, score, i) for i, (polygon, label, score) in
-     enumerate(zip(polygons, predicted_labels, scores))]
+    _write_polygons_to_annotations(root, polygons, predicted_labels, scores)
 
     tree = ET.ElementTree(root)
     tree.write(xml_path)
     return xml_path
+
+
+def _write_polygons_to_annotations(root, polygons, predicted_labels, scores):
+    anns_label = "Annotations"
+    anns = _find_or_create_subelement(root, label=anns_label)
+
+    group_label = 'NN Prediction'
+
+    [_create_polygon(anns, *params, group_label, i) for i, params in
+     enumerate(zip(polygons, predicted_labels, scores))]
+
+    _create_group(root, label=group_label)
+
+
+def _find_or_create_subelement(root, label):
+    return root.find(label) if root.find(label) else ET.SubElement(root, label)
 
 
 def append_polygons_to_existing_xml(polygons, predicted_labels, scores, source_xml_path,
@@ -34,25 +49,29 @@ def append_polygons_to_existing_xml(polygons, predicted_labels, scores, source_x
         output_xml_path = source_xml_path
 
     root = ET.parse(source_xml_path).getroot()
-    anns = root.find('Annotations')
 
-    [_create_polygon(anns, polygon, label, score, i) for i, (polygon, label, score) in
-     enumerate(zip(polygons, predicted_labels, scores))]
+    _write_polygons_to_annotations(root, polygons, predicted_labels, scores)
 
     tree = ET.ElementTree(root)
     tree.write(output_xml_path)
     return output_xml_path
 
 
-def _create_polygon(anns, polygon, label, score, i):
+def _create_polygon(anns, polygon, label, score, group_label, i):
     ann = ET.SubElement(anns, "Annotation", Name="{0}_({1})".format(i, score), Type="Polygon",
                         label=str(label), score=str(score),
-                        Color=_get_hex_color_from_score(score), PartOfGroup="None")
+                        Color=_get_hex_color_from_score(score), PartOfGroup=group_label)
     coords = ET.SubElement(ann, "Coordinates")
 
     [ET.SubElement(coords, "Coordinate", Order=str(idx), X=str(point[0]), Y=str(point[1])) for
      idx, point in
      enumerate(polygon)]
+
+
+def _create_group(root, label):
+    groups = _find_or_create_subelement(root, "AnnotationGroups")
+    group = ET.SubElement(groups, "Group", Name=label)
+    return group
 
 
 def _get_hex_color_from_score(score):
