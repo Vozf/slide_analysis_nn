@@ -63,9 +63,8 @@ class Predict:
 
 def main():
     predict_example = Predict()
-    # prediction = predict_example.predict_image('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/unlabeled_images/Tumor_015.tif_50892:169622:51148:169878.png')
-    prediction = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/slide_images/Tumor_001.tif', area_to_predict=((66500, 130000), (73300, 137000)))
-    prediction.save_as_asap_annotations(truth_xml_path='/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/slide_images/Tumor_001_true.xml')
+    prediction = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/slide_images/Tumor_001.tif', area_to_predict=((48000, 110000), (75000, 135000)))
+    prediction.save_as_asap_annotations(truth_xml_path='/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/slide_images/Tumor_001true.xml')
     print(prediction)
 
     # prediction.create_asap_annotations()

@@ -4,8 +4,7 @@ import os
 
 import keras
 import tensorflow
-from keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten
-from keras.models import Sequential
+from keras.applications.inception_v3 import InceptionV3
 
 from train import Generator
 from train.callbacks import BestModelCheckpoint
@@ -23,7 +22,6 @@ from train.settings import (
     VALIDATION_STEPS,
     TF_BOARD_LOGS_DIR
 )
-from utils.constants import TILE_SHAPE
 from utils.mixins import GPUSupportMixin
 
 
@@ -66,27 +64,7 @@ class Train(GPUSupportMixin):
         return train_generator, validation_generator
 
     def _create_model(self, num_classes):
-        model = Sequential()
-        model.add(Conv2D(32, (3, 3), padding='same', activation='relu',
-                         input_shape=TILE_SHAPE))
-        model.add(Conv2D(32, (3, 3), activation='relu'))
-        model.add(MaxPooling2D(pool_size=(2, 2)))
-        model.add(Dropout(0.25))
-
-        model.add(Conv2D(64, (3, 3), padding='same', activation='relu'))
-        model.add(Conv2D(64, (3, 3), activation='relu'))
-        model.add(MaxPooling2D(pool_size=(2, 2)))
-        model.add(Dropout(0.25))
-
-        model.add(Conv2D(64, (3, 3), padding='same', activation='relu'))
-        model.add(Conv2D(64, (3, 3), activation='relu'))
-        model.add(MaxPooling2D(pool_size=(2, 2)))
-        model.add(Dropout(0.25))
-
-        model.add(Flatten())
-        model.add(Dense(512, activation='relu'))
-        model.add(Dropout(0.5))
-        model.add(Dense(num_classes, activation='softmax'))
+        model = InceptionV3(include_top=True, weights=None, classes=num_classes)
 
         # compile model
         model.compile(
@@ -119,11 +97,11 @@ class Train(GPUSupportMixin):
         #                                                patience=PATIENCE)
         # callbacks.append(early_stopping)
 
-        lr_scheduler = keras.callbacks.ReduceLROnPlateau(
-            monitor='loss', factor=0.1, patience=2, verbose=1, mode='auto',
-            epsilon=0.0001, cooldown=0, min_lr=0
-        )
-        callbacks.append(lr_scheduler)
+        # lr_scheduler = keras.callbacks.ReduceLROnPlateau(
+        #     monitor='loss', factor=0.1, patience=2, verbose=1, mode='auto',
+        #     epsilon=0.0001, cooldown=0, min_lr=0
+        # )
+        # callbacks.append(lr_scheduler)
 
         tensor_board = TB(
             log_every=True, log_dir=os.path.join(TF_BOARD_LOGS_DIR, 'train_{}'.format(
@@ -158,7 +136,7 @@ class Train(GPUSupportMixin):
             generator=train_generator,
             steps_per_epoch=train_steps,
             epochs=EPOCHS,
-            class_weight={0: 10, 1: 1},
+            class_weight={0: 2, 1: 1},
             validation_data=validation_generator,
             validation_steps=val_steps,
             callbacks=callbacks,
