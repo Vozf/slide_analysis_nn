@@ -25,6 +25,7 @@ class Predict:
         files = glob.iglob(self.snapshot_path+'/*/*.h5')
         models = sorted(files, key=os.path.getmtime)
         model_path = os.path.join(self.snapshot_path, models[-1])
+        print(model_path)
         self.model = keras.models.load_model(model_path)
 
     def _get_session(self):
