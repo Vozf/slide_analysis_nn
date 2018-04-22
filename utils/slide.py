@@ -1,9 +1,9 @@
 from concurrent.futures import ThreadPoolExecutor
-from os.path import basename, join
 
 import numpy as np
 from matplotlib import pyplot as plt
 from openslide import open_slide
+from os.path import basename, join
 from shapely.geometry import Polygon, MultiPolygon, box
 
 from train.datasets_preparation.settings import (
@@ -12,7 +12,7 @@ from train.datasets_preparation.settings import (
     UNLABELED_IMAGES_DIR,
     LABELED_IMAGES_DIR
 )
-from utils.constants import TILE_SIZE, TILE_STEP, AREA_PROCESSING_MULTIPLIER
+from utils.constants import TILE_SIZE, TILE_STEP, AREA_PROCESSING_MULTIPLIER, MAX_TILES_PER_TUMOR
 from utils.functions import dict_assign
 
 
@@ -67,18 +67,19 @@ class Slide:
         return None
 
     def _process_polygon(self, current_polygon, global_multipolygon):
-        print(self._get_bounding_box_for_polygon(current_polygon), self._get_processing_area_for_polygon(current_polygon))
         dictionary = {}
 
         x1pa, y1pa, x2pa, y2pa = self._get_processing_area_for_polygon(current_polygon)
-
-        # if x2pa - x1pa > 10000:
-        #     return {}
 
         # self._save_tile((x1pa, y1pa, x2pa, y2pa), dir_path=SMALL_WITH_TUMOR_IMAGES_DIR, ext='tif')
         x = range(x1pa, x2pa, TILE_STEP)
         y = range(y1pa, y2pa, TILE_STEP)
         coords_to_extract = np.transpose([np.tile(x, len(y)), np.repeat(y, len(x))])
+
+        if coords_to_extract.shape[0] > MAX_TILES_PER_TUMOR:
+            return {}
+
+        print(self._get_bounding_box_for_polygon(current_polygon), self._get_processing_area_for_polygon(current_polygon))
 
         with ThreadPoolExecutor() as executor:
             path_and_classes = executor.map(
