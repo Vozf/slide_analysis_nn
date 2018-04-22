@@ -141,7 +141,7 @@ class Slide:
         tile = self.cut_tile(tile_box[0], tile_box[1], tile_box[2] - tile_box[0],
                              tile_box[3] - tile_box[1])
 
-        image_name = "{0}_{1}:{2}:{3}:{4}.{5}".format(basename(self.slide_path), *tile_box, ext)
+        image_name = "{0}_({1},{2},{3},{4}).{5}".format(basename(self.slide_path), *tile_box, ext)
         image_path = join(dir_path, image_name)
 
         tile.save(image_path)
