@@ -24,11 +24,14 @@ class Slide:
     def cut_tile(self, x, y, width=TILE_SIZE, height=TILE_SIZE):
         return self.slide.read_region((x, y), 0, (width, height))
 
-    def cut_polygons_data(self, bounding_box_polygons, draw_invalid_polygons=False):
+    def cut_polygons_data(self, asap_polygons, draw_invalid_polygons=False):
+        if not asap_polygons:
+            return {}
+
         print('processing slide {}'.format(self.slide_path))
 
         shapely_poly = [self._create_shapely_polygon(poly, draw_invalid_polygons) for poly in
-                        bounding_box_polygons]
+                        asap_polygons]
         global_multipolygon = MultiPolygon(filter(None, np.hstack(shapely_poly)))
 
         with ThreadPoolExecutor() as executor:
