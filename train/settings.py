@@ -9,4 +9,4 @@ VALIDATION_STEPS = None
 MIN_DELTA = 1e-4
 PATIENCE = 5
 SNAPSHOTS_DIR = os.path.join(PROJECT_PATH, 'snapshots')
-TF_BOARD_LOGS_DIR = os.path.join(PROJECT_PATH, 'logs')
+COMET_ML_API_KEY = "u1kVzuf2UmrYqOiIS3Lg11SHP"

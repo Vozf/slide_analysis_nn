@@ -4,15 +4,12 @@ import os
 
 import keras
 import tensorflow
+from comet_ml import Experiment
 from keras.applications.inception_v3 import InceptionV3
 
 from train import Generator
-from train.callbacks import BestModelCheckpoint
-from train.callbacks import TB
-from train.datasets_preparation import DatasetPreparation
 from train.datasets_preparation.settings import (
-    TRAIN_DATASET_FILE_PATH,
-    TEST_DATASET_FILE_PATH
+    TRAIN_DATASET_FILE_PATH
 )
 from train.settings import (
     SNAPSHOTS_DIR,
@@ -20,7 +17,7 @@ from train.settings import (
     BATCH_SIZE,
     TRAIN_STEPS,
     VALIDATION_STEPS,
-    TF_BOARD_LOGS_DIR
+    COMET_ML_API_KEY,
 )
 from utils.mixins import GPUSupportMixin
 
@@ -103,16 +100,13 @@ class Train(GPUSupportMixin):
         # )
         # callbacks.append(lr_scheduler)
 
-        tensor_board = TB(
-            log_every=True, log_dir=os.path.join(TF_BOARD_LOGS_DIR, 'train_{}'.format(
-                len(os.listdir(TF_BOARD_LOGS_DIR))))
-        )
-        callbacks.append(tensor_board)
-
         return callbacks
 
+    def _connect_to_comet_ml(self):
+        Experiment(api_key=COMET_ML_API_KEY)
+
     def _load_model(self):
-        files = glob.iglob(self.snapshot_path+'/../*/*.h5')
+        files = glob.iglob(self.snapshot_path + '/../*/*.h5')
         models = sorted(files, key=os.path.getmtime)
         model_path = os.path.join(self.snapshot_path, models[-1])
         return keras.models.load_model(model_path)
@@ -120,12 +114,15 @@ class Train(GPUSupportMixin):
     def start_training(self, continue_train=False):
         keras.backend.tensorflow_backend.set_session(self._get_session())
 
+        self._connect_to_comet_ml()
+
         train_generator, validation_generator = self._create_generators()
 
         train_steps = TRAIN_STEPS if TRAIN_STEPS is not None else len(train_generator)
         val_steps = VALIDATION_STEPS if VALIDATION_STEPS is not None else len(validation_generator)
 
-        model = self._load_model() if continue_train else self._create_model(num_classes=train_generator.num_classes())
+        model = self._load_model() if continue_train else self._create_model(
+            num_classes=train_generator.num_classes())
 
         self.log.info(model.summary())
 
@@ -147,8 +144,8 @@ def main():
     dataset_preparation = DatasetPreparation()
     dataset_preparation.populate_prepared_datasets()
     #
-    # train = Train()
-    # train.start_training()
+    train = Train()
+    train.start_training()
 
 
 if __name__ == '__main__':
