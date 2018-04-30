@@ -41,12 +41,8 @@ class Predict:
         scores = self.model.predict_generator(slide_generator)
         print(time.time() - start, 'sup')
 
-        predicted_labels = np.argmax(scores, axis=1)
-        predicted_labels_scores = scores[np.arange(scores.shape[0]), predicted_labels]
-
         return PredictionResult(slide_path,
-                                predicted_labels=predicted_labels,
-                                scores=predicted_labels_scores,
+                                scores=scores,
                                 tile_coordinates=slide_generator.addresses)
 
     def predict_image(self, image_path):
@@ -58,15 +54,15 @@ class Predict:
         predicted_labels_scores = scores[np.arange(scores.shape[0]), predicted_labels]
 
         return PredictionResult(image_path,
-                                predicted_labels=predicted_labels,
                                 scores=predicted_labels_scores)
 
 
 def main():
+
     predict_example = Predict()
-    prediction = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/slide_images/Tumor_001.tif', area_to_predict=((48000, 110000), (75000, 135000)))
-    prediction.save_as_asap_annotations(truth_xml_path='/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/slide_images/Tumor_001true.xml')
-    print(prediction)
+    prediction = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/slide_images/hidden/Tumor_015.tif', area_to_predict=((74000, 74000), (80000, 80000)))
+    prediction.create_map()
+    # prediction.save_as_asap_annotations(truth_xml_path='/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/slide_images/hidden/Tumor_015true.xml')
 
     # prediction.create_asap_annotations()
 
