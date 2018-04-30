@@ -9,6 +9,7 @@ from keras.applications.inception_v3 import InceptionV3
 
 from train.datasets_preparation.settings import (
     TRAIN_DATASET_FILE_PATH,
+    TEST_DATASET_FILE_PATH,
 )
 from train.generator import Generator
 from train.settings import (
