@@ -2,9 +2,9 @@ import glob
 import logging
 import os
 
+from comet_ml import Experiment
 import keras
 import tensorflow
-from comet_ml import Experiment
 from keras.applications.inception_v3 import InceptionV3
 
 from train.datasets_preparation.settings import (
