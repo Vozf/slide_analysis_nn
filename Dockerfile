@@ -74,7 +74,8 @@ RUN pip install \
     falcon==1.4.1 \
     numpy==1.14.2 \
     openslide-python \
-    shapely==1.6.4.post1
+    shapely==1.6.4.post1 \
+    comet_ml==1.0.9
 
 #ADD theanorc /home/keras/.theanorc
 

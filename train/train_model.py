@@ -7,10 +7,10 @@ import tensorflow
 from comet_ml import Experiment
 from keras.applications.inception_v3 import InceptionV3
 
-from train import Generator
 from train.datasets_preparation.settings import (
-    TRAIN_DATASET_FILE_PATH
+    TRAIN_DATASET_FILE_PATH,
 )
+from train.generator import Generator
 from train.settings import (
     SNAPSHOTS_DIR,
     EPOCHS,
