@@ -57,7 +57,7 @@ class Train(GPUSupportMixin):
         )
 
         validation_generator = Generator(
-            TEST_DATASET_FILE_PATH,
+            TRAIN_DATASET_FILE_PATH,
             batch_size=BATCH_SIZE,
         )
 
@@ -79,12 +79,12 @@ class Train(GPUSupportMixin):
         callbacks = []
 
         # save the prediction model
-        checkpoint = BestModelCheckpoint(
-            os.path.join(self.snapshot_path, 'slide_analysis_{epoch:02d}_{val_loss:.2f}.h5'),
-            verbose=1,
+        # checkpoint = BestModelCheckpoint(
+        #     os.path.join(self.snapshot_path, 'slide_analysis_{epoch:02d}_{val_loss:.2f}.h5'),
+        #     verbose=1,
             # monitor='val_loss', save_best_only=True, mode='min'
-        )
-        callbacks.append(checkpoint)
+        # )
+        # callbacks.append(checkpoint)
 
         # Save the prediction model as tf_graph
         # converter = TensorGraphConverter(
@@ -137,18 +137,18 @@ class Train(GPUSupportMixin):
             steps_per_epoch=train_steps,
             epochs=EPOCHS,
             class_weight={0: 2, 1: 1},
-            validation_data=validation_generator,
-            validation_steps=val_steps,
+            # validation_data=validation_generator,
+            # validation_steps=val_steps,
             callbacks=callbacks,
         )
 
 
 def main():
-    dataset_preparation = DatasetPreparation()
-    dataset_preparation.populate_prepared_datasets()
-    #
-    # train = Train()
-    # train.start_training()
+    # dataset_preparation = DatasetPreparation()
+    # dataset_preparation.populate_prepared_datasets()
+
+    train = Train()
+    train.start_training()
 
 
 if __name__ == '__main__':

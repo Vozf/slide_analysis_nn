@@ -65,7 +65,7 @@ class PredictionResult:
         map = cm.ScalarMappable(cmap='jet')
         default_scores = self.all_scores[:, self.label_name_to_label_id[DEFAULT_CLASS_NAME]]
 
-        resized = np.reshape(default_scores, image_size)
+        resized = np.reshape(default_scores, image_size[::-1])
         rgba = map.to_rgba(resized, bytes=True)
 
         return Image.fromarray(rgba).save(img_base_name + '_color_map.png')
