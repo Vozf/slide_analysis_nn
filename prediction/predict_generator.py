@@ -23,7 +23,7 @@ class PredictGenerator(keras.utils.Sequence):
 
         x = range(self.area_to_predict[0][0], self.area_to_predict[1][0]-TILE_SIZE, TILE_STEP)
         y = range(self.area_to_predict[0][1], self.area_to_predict[1][1]-TILE_SIZE, TILE_STEP)
-        self.coordinates_grid = np.stack(np.meshgrid(x, y))
+        self.coordinates_grid = np.stack(np.meshgrid(x, y), axis=2)
 
         self.all_coordinates = self.coordinates_grid.reshape(-1, 2)
         self.label_names_to_id = DatasetPreparation.get_label_name_to_label_id_dict()
