@@ -23,15 +23,16 @@ class PredictGenerator(keras.utils.Sequence):
 
         x = range(self.area_to_predict[0][0], self.area_to_predict[1][0]-TILE_SIZE, TILE_STEP)
         y = range(self.area_to_predict[0][1], self.area_to_predict[1][1]-TILE_SIZE, TILE_STEP)
+        self.coordinates_grid = np.stack(np.meshgrid(x, y))
 
-        self.addresses = np.transpose([np.tile(x, len(y)), np.repeat(y, len(x))])
+        self.all_coordinates = self.coordinates_grid.reshape(-1, 2)
         self.label_names_to_id = DatasetPreparation.get_label_name_to_label_id_dict()
 
         self.times = [time.time()]*5
         self.diffs = [time.time()]*5
 
     def __len__(self):
-        return int(np.ceil(len(self.addresses) / self.batch_size))
+        return int(np.ceil(len(self.all_coordinates) / self.batch_size))
 
     def __getitem__(self, index):
         if isinstance(index, slice):
@@ -44,7 +45,7 @@ class PredictGenerator(keras.utils.Sequence):
 
         print(str(index) + ':' + str(len(self)))
 
-        addresses = self.addresses[index * self.batch_size:(index + 1) * self.batch_size]
+        addresses = self.all_coordinates[index * self.batch_size:(index + 1) * self.batch_size]
 
         X = self.__data_generation(addresses)
 

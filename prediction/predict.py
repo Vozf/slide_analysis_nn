@@ -43,7 +43,7 @@ class Predict:
 
         return PredictionResult(slide_path,
                                 scores=scores,
-                                tile_coordinates=slide_generator.addresses)
+                                tile_coordinates=slide_generator.all_coordinates)
 
     def predict_image(self, image_path):
         image = cv2.imread(image_path, cv2.IMREAD_COLOR)[..., :3]
