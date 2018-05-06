@@ -4,7 +4,10 @@ import os
 
 import keras
 import tensorflow
+from keras import Model
 from keras.applications.inception_v3 import InceptionV3
+from keras.callbacks import TensorBoard
+from keras.layers import GlobalAveragePooling2D, Dense
 
 from train import Generator
 from train.callbacks import BestModelCheckpoint
@@ -64,7 +67,18 @@ class Train(GPUSupportMixin):
         return train_generator, validation_generator
 
     def _create_model(self, num_classes):
-        model = InceptionV3(include_top=True, weights=None, classes=num_classes)
+        base_model = InceptionV3(weights='imagenet', include_top=False)
+
+        # add a global spatial average pooling layer
+        x = base_model.output
+        x = GlobalAveragePooling2D()(x)
+        # let's add a fully-connected layer
+        x = Dense(4096, activation='relu')(x)
+        # and a logistic layer -- let's say we have 200 classes
+        predictions = Dense(num_classes, activation='softmax')(x)
+
+        # this is the model we will train
+        model = Model(inputs=base_model.input, outputs=predictions)
 
         # compile model
         model.compile(
