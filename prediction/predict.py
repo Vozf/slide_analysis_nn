@@ -15,8 +15,8 @@ from train.settings import (
 
 
 class Predict:
-    def __init__(self):
-        self.snapshot_path = SNAPSHOTS_DIR
+    def __init__(self, snapshot_path=SNAPSHOTS_DIR):
+        self.snapshot_path = snapshot_path
         self._get_session()
         keras.backend.tensorflow_backend.set_session(self.session)
         self._load_model()

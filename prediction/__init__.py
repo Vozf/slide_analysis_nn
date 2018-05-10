@@ -1,2 +1,3 @@
 from prediction.predict_generator import PredictGenerator
 from prediction.prediction_result import PredictionResult
+from prediction.predict import Predict
