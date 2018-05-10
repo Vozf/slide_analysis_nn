@@ -4,11 +4,11 @@ import numpy as np
 from PIL import Image
 from matplotlib import cm
 
-from prediction.settings import DEFAULT_SCORE_THRESHOLD
-from train.datasets_preparation import DatasetPreparation
-from train.datasets_preparation.settings import DEFAULT_CLASS_NAME
-from utils.ASAP_xml import write_polygons_xml, append_polygons_to_existing_xml
-from utils.constants import TILE_SIZE, TILE_STEP
+from slide_analysis_nn.prediction.settings import DEFAULT_SCORE_THRESHOLD
+from slide_analysis_nn.train.datasets_preparation import DatasetPreparation
+from slide_analysis_nn.train.datasets_preparation.settings import DEFAULT_CLASS_NAME
+from slide_analysis_nn.utils.ASAP_xml import write_polygons_xml, append_polygons_to_existing_xml
+from slide_analysis_nn.utils.constants import TILE_SIZE, TILE_STEP
 
 
 class PredictionResult:

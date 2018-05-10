@@ -1,8 +1,9 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
-    name='slide-analysis-nn',
+    name='slide_analysis_nn',
     version='1',
+    packages=find_packages(),
     install_requires=['matplotlib',
                       'werkzeug',
                       'keras',
@@ -11,7 +12,8 @@ setup(
                       'falcon',
                       'numpy',
                       'h5py',
-                      'shapely ',
+                      'openslide-python',
+                      'shapely',
                     ],
     url='',
     license='MIT',

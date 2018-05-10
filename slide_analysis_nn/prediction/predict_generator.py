@@ -5,9 +5,9 @@ from typing import Tuple
 import keras
 import numpy as np
 
-from train.datasets_preparation import DatasetPreparation
-from utils.constants import TILE_SIZE, TILE_STEP
-from utils.slide import Slide
+from slide_analysis_nn.train.datasets_preparation import DatasetPreparation
+from slide_analysis_nn.utils.constants import TILE_SIZE, TILE_STEP
+from slide_analysis_nn.utils.slide import Slide
 
 Point = Tuple[int, int]
 Rectangle = Tuple[Point, Point]

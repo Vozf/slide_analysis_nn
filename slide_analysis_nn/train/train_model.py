@@ -9,15 +9,15 @@ from keras.applications.inception_v3 import InceptionV3
 from keras.callbacks import TensorBoard
 from keras.layers import GlobalAveragePooling2D, Dense
 
-from train import Generator
-from train.callbacks import BestModelCheckpoint
-from train.callbacks import TB
-from train.datasets_preparation import DatasetPreparation
-from train.datasets_preparation.settings import (
+from slide_analysis_nn.train import Generator
+from slide_analysis_nn.train.callbacks import BestModelCheckpoint
+from slide_analysis_nn.train.callbacks import TB
+from slide_analysis_nn.train.datasets_preparation import DatasetPreparation
+from slide_analysis_nn.train.datasets_preparation.settings import (
     TRAIN_DATASET_FILE_PATH,
     TEST_DATASET_FILE_PATH
 )
-from train.settings import (
+from slide_analysis_nn.train.settings import (
     SNAPSHOTS_DIR,
     EPOCHS,
     BATCH_SIZE,
@@ -25,7 +25,7 @@ from train.settings import (
     VALIDATION_STEPS,
     TF_BOARD_LOGS_DIR
 )
-from utils.mixins import GPUSupportMixin
+from slide_analysis_nn.utils.mixins import GPUSupportMixin
 
 
 class Train(GPUSupportMixin):

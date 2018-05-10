@@ -1,5 +1,5 @@
-from train import Train
-from train.datasets_preparation import DatasetPreparation
+from slide_analysis_nn.train import Train
+from slide_analysis_nn.train.datasets_preparation import DatasetPreparation
 
 
 def main():

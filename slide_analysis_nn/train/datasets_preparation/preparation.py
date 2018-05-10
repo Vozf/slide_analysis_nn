@@ -7,7 +7,7 @@ import random
 import time
 from collections import Counter
 
-from train.datasets_preparation.settings import (
+from slide_analysis_nn.train.datasets_preparation.settings import (
     LABELED_IMAGES_DIR,
     TRAIN_DATASET_FILE_PATH,
     TEST_DATASET_FILE_PATH,
@@ -16,8 +16,8 @@ from train.datasets_preparation.settings import (
     CLASS_MAPPING_FILE_PATH,
     SLIDE_IMAGES_DIR
 )
-from utils.ASAP_xml import read_polygons_xml
-from utils.slide import Slide
+from slide_analysis_nn.utils.ASAP_xml import read_polygons_xml
+from slide_analysis_nn.utils.slide import Slide
 
 
 class DatasetPreparation(object):
@@ -107,7 +107,7 @@ class DatasetPreparation(object):
 
         self.create_csv_from_list(class_mapping, CLASS_MAPPING_FILE_PATH)
 
-        # create CSV files from train and test sets
+        # create CSV files from slide_analysis_nn.train and test sets
         self.create_csv_from_list(test_finished.items(), TEST_DATASET_FILE_PATH)
         self.create_csv_from_list(train_finished.items(), TRAIN_DATASET_FILE_PATH)
 

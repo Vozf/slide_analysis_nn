@@ -1,0 +1,3 @@
+from slide_analysis_nn.prediction.predict_generator import PredictGenerator
+from slide_analysis_nn.prediction.prediction_result import PredictionResult
+from slide_analysis_nn.prediction.predict import Predict

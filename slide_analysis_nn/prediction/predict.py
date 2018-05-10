@@ -7,9 +7,9 @@ import keras
 import numpy as np
 import tensorflow as tf
 
-from prediction import PredictGenerator
-from prediction import PredictionResult
-from train.settings import (
+from slide_analysis_nn.prediction import PredictGenerator
+from slide_analysis_nn.prediction import PredictionResult
+from slide_analysis_nn.train.settings import (
     SNAPSHOTS_DIR,
     BATCH_SIZE)
 
@@ -60,9 +60,9 @@ class Predict:
 def main():
 
     predict_example = Predict()
-    prediction = predict_example.predict_slide('/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/slide_images/hidden/Tumor_015.tif', area_to_predict=((74000, 74000), (80000, 80000)))
+    prediction = predict_example.predict_slide('/home/vozman/projects/slides/slide_analysis_nn/slide_analysis_nn/train/datasets/source/slide_images/hidden/Tumor_015.tif', area_to_predict=((74000, 0), (80000, 3000)))
     prediction.create_map()
-    # prediction.save_as_asap_annotations(truth_xml_path='/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/slide_images/hidden/Tumor_015true.xml')
+    prediction.save_as_asap_annotations(truth_xml_path='/home/vozman/projects/slides/slide_analysis_nn/slide_analysis_nn/train/datasets/source/slide_images/hidden/Tumor_015true.xml')
 
     # prediction.create_asap_annotations()
 

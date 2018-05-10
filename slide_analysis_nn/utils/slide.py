@@ -6,14 +6,14 @@ from openslide import open_slide
 from os.path import basename, join
 from shapely.geometry import Polygon, MultiPolygon, box
 
-from train.datasets_preparation.settings import (
+from slide_analysis_nn.train.datasets_preparation.settings import (
     DEFAULT_CLASS_NAME,
     BACKGROUND_CLASS_NAME,
     UNLABELED_IMAGES_DIR,
     LABELED_IMAGES_DIR
 )
-from utils.constants import TILE_SIZE, TILE_STEP, AREA_PROCESSING_MULTIPLIER, MAX_TILES_PER_TUMOR
-from utils.functions import dict_assign
+from slide_analysis_nn.utils.constants import TILE_SIZE, TILE_STEP, AREA_PROCESSING_MULTIPLIER, MAX_TILES_PER_TUMOR
+from slide_analysis_nn.utils.functions import dict_assign
 
 
 class Slide:

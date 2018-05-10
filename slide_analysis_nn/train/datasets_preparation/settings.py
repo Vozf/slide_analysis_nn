@@ -1,6 +1,6 @@
 import os
 
-from train.settings import PROJECT_PATH
+from slide_analysis_nn.train.settings import PROJECT_PATH
 
 LABELED_IMAGES_DIR = os.path.join(PROJECT_PATH, 'datasets', 'source', 'labeled_images')
 

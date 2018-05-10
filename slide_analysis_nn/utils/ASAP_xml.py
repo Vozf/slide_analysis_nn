@@ -60,10 +60,10 @@ def _get_hex_color_from_score(score):
     rgb0_255 = [int(x * 255) for x in rgb0_1]
     return '#%02x%02x%02x' % tuple(rgb0_255)
 
-# write_polygons_xml([[1,2,3,4],[5,6,7,8]], [0.9, 0.2], '/home/vozman/projects/slides/slide-analysis-nn/prediction/asap_annotations/xm.xml')
+# write_polygons_xml([[1,2,3,4],[5,6,7,8]], [0.9, 0.2], '/home/vozman/projects/slides/slide_analysis_nn/slide_analysis_nn/slide_analysis_nn/slide_analysis_nn/prediction/asap_annotations/xm.xml')
 
-# read_xml = '/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/slide_images/Tumor_016pred.xml'
-# write_xml = '/home/vozman/projects/slides/slide-analysis-nn/train/datasets/source/slide_images/Tumor_016.xml'
+# read_xml = '/home/vozman/projects/slides/slide_analysis_nn/slide_analysis_nn/slide_analysis_nn/slide_analysis_nn/train/datasets/source/slide_images/Tumor_016pred.xml'
+# write_xml = '/home/vozman/projects/slides/slide_analysis_nn/slide_analysis_nn/slide_analysis_nn/slide_analysis_nn/train/datasets/source/slide_images/Tumor_016.xml'
 #
 # root = ET.parse(read_xml).getroot()
 #

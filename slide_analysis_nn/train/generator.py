@@ -6,7 +6,7 @@ import keras
 import numpy as np
 from keras.utils import to_categorical
 
-from train.datasets_preparation import DatasetPreparation
+from slide_analysis_nn.train.datasets_preparation import DatasetPreparation
 
 
 class Generator(keras.utils.Sequence):
