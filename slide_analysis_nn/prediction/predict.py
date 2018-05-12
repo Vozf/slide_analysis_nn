@@ -9,20 +9,28 @@ import tensorflow as tf
 
 from slide_analysis_nn.prediction import PredictGenerator
 from slide_analysis_nn.prediction import PredictionResult
+from slide_analysis_nn.prediction.settings import MODEL_DOWNLOAD_URL
 from slide_analysis_nn.train.settings import (
     SNAPSHOTS_DIR,
     BATCH_SIZE)
+from slide_analysis_nn.utils.functions import download_file
 
 
 class Predict:
-    def __init__(self, snapshot_path=SNAPSHOTS_DIR):
+    def __init__(self, download_weights=True, snapshot_path=SNAPSHOTS_DIR):
         self.snapshot_path = snapshot_path
         self._get_session()
         keras.backend.tensorflow_backend.set_session(self.session)
-        self._load_model()
+        self._load_model(download_weights)
 
-    def _load_model(self):
-        files = glob.iglob(self.snapshot_path+'/*/*.h5')
+    def _load_model(self, download_weights):
+        DOWNLOAD_MODEL_PATH = os.path.join(self.snapshot_path, 'downloaded_model.h5')
+
+        if download_weights and not os.path.isfile(DOWNLOAD_MODEL_PATH):
+            print('Downloading weights')
+            download_file(MODEL_DOWNLOAD_URL, DOWNLOAD_MODEL_PATH)
+
+        files = glob.iglob(self.snapshot_path+'/**/*.h5', recursive=True)
         models = sorted(files, key=os.path.getmtime)
         model_path = os.path.join(self.snapshot_path, models[-1])
         print(model_path)

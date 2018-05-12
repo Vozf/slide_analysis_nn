@@ -9,4 +9,4 @@ numpy==1.14.2
 h5py==2.7.1
 openslide-python
 shapely==1.6.4.post1
-pydash
+requests==2.18.4
