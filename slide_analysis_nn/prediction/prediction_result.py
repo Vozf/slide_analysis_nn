@@ -53,7 +53,7 @@ class PredictionResult:
                                                             self.predicted_labels_scores, list(map(
                 lambda x: self.label_id_to_label_name[x], self.predicted_labels)))
 
-    def create_map(self):
+    def create_map(self, path=None):
         image_size = (
                 (np.max(self.tile_coordinates[:, 0]) - np.min(
                     self.tile_coordinates[:, 0])) // TILE_STEP + 1,
@@ -63,9 +63,23 @@ class PredictionResult:
         img_base_name = os.path.splitext(self.image_path)[0]
 
         map = cm.ScalarMappable(cmap='jet')
-        default_scores = self.all_scores[:, self.label_name_to_label_id[DEFAULT_CLASS_NAME]]
+        tumor_scores = self.get_tumor_scores()
 
-        resized = np.reshape(default_scores, image_size[::-1])
+        resized = np.reshape(tumor_scores, image_size[::-1])
         rgba = map.to_rgba(resized, bytes=True)
 
-        return Image.fromarray(rgba).save(img_base_name + '_color_map.png')
+        path = path if path else img_base_name + '_color_map.png'
+
+        return Image.fromarray(rgba).save(path)
+
+    def get_tumor_scores(self):
+        return self.all_scores[:, self.label_name_to_label_id[DEFAULT_CLASS_NAME]]
+
+    def get_results(self):
+        return [{
+            "x": int(coord[0]),
+            "y": int(coord[1]),
+            "height": TILE_SIZE,
+            "width": TILE_SIZE,
+            "score": float(score),
+        } for coord, score in zip(self.tile_coordinates, self.get_tumor_scores())]
