@@ -14,6 +14,7 @@ setup(
                       'h5py',
                       'openslide-python',
                       'shapely',
+                      'requests',
                     ],
     url='',
     license='MIT',
