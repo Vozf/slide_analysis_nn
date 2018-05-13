@@ -24,6 +24,9 @@ class Predict:
         self._load_model(download_weights)
 
     def _load_model(self, download_weights):
+        if not os.path.exists(self.snapshot_path):
+            os.makedirs(self.snapshot_path)
+
         DOWNLOAD_MODEL_PATH = os.path.join(self.snapshot_path, 'downloaded_model.h5')
 
         if download_weights and not os.path.isfile(DOWNLOAD_MODEL_PATH):
