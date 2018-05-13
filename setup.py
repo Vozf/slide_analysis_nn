@@ -1,5 +1,6 @@
 from setuptools import setup, find_packages
 
+print(find_packages())
 setup(
     name='slide_analysis_nn',
     version='1',
@@ -20,5 +21,6 @@ setup(
     license='MIT',
     author='vozman',
     author_email='vozman@yandex.ru',
-    description=''
+    description='',
+    include_package_data=True,
 )
