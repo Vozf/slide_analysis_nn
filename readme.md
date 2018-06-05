@@ -14,3 +14,4 @@ Red squares are the tumor area predicted by the neural network and as mentioned 
 [Example 3](https://psv4.userapi.com/c848232/u98389977/docs/d14/35438ab1ee8d/Screenshot_from_2018-06-05_12-25-20.png?extra=5g6B62s-gX9_F8drbC-rjY90-2ZHmwVkJ6o3ZQujKwz7RXHWozj6n_gYjyexoNXMLXO5caJruAHN6ZEXfQA1Lxd-YMBve20Rp__YqCoYOI-8jD2fkDmOoNtn4pPJYPPR6IoLLIK_bfGPdB4)
 ### Use
 You can use the neural network as part of the [Slide Analysis Project](https://github.com/Vozf/slide_analysis_web) or you can use the repository itself and use `Predict` class for prediction. Weights are auto downloaded.
+Training and Prediction are also available using [Nvidia docker](https://github.com/NVIDIA/nvidia-docker)
