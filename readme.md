@@ -1,6 +1,6 @@
 # Slide Analysis Neural Network
 ## Slide Analysis Neural Network is part of the [Slide Analysis Project](https://github.com/Vozf/slide_analysis_web)
-### Data
+### Data (200+ Gb)
 Input data are histology whole slide images(very large images with size 2-3Gb size) and [ASAP](https://github.com/computationalpathologygroup/ASAP) annotations. Annotations contain markup of the tumor area in the image. [Example 1](https://psv4.userapi.com/c848232/u98389977/docs/d12/01d5273dbd9e/Screenshot_from_2018-06-05_12-15-50.png?extra=Ak5n4Vmmtz3ntEI1E8HyLOe9whCUltmMvm6jzVTF_-n5xIKESXZgRc3kTt6Un7bEnhm413k30_VPSp5s5n7NdgfK-R-PnBTEKqaVvcTWGV0X0ihOaTqTgkj_GF7peeiTi-k1dIPI8AUyoeg) [Example 2](https://psv4.userapi.com/c848232/u98389977/docs/d6/767f44e4726e/Screenshot_from_2018-06-05_12-19-19.png?extra=XdMoLxiLriBuyBwpBBiwo0Tw9jOf9dEmfFZML8xqFCvL37lc_TjLv-xT70QJ_WRpk2B9TUUhKy_peAs6NOlTRgmMAMRpnS-YQAU4aGMnpO5UIJizesIWf1LsTgXPI10blLPJ101m5F-U2Wg) (Blue markup is the tumor area marked by the medical specialist)
 
 ### Target 
