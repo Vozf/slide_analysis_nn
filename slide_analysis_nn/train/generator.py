@@ -2,11 +2,11 @@ import csv
 from concurrent.futures import ThreadPoolExecutor
 
 import cv2
-import numpy as np
 import keras
+import numpy as np
 from keras.utils import to_categorical
 
-from train.datasets_preparation.preparation import DatasetPreparation
+from slide_analysis_nn.train.datasets_preparation import DatasetPreparation
 
 
 class Generator(keras.utils.Sequence):
@@ -14,8 +14,11 @@ class Generator(keras.utils.Sequence):
         self.batch_size = batch_size
 
         with open(data_path, 'r') as csvfile:
-            reader = csv.reader(csvfile)
-            self.data = np.asarray([(row[0], row[-1]) for row in reader])
+            file = list(csv.reader(csvfile))
+            self.data = np.asarray(file)
+
+        if not self.data.shape[1]:
+            raise Exception('Empty csv file')
 
         self.labels_names_to_id = DatasetPreparation.get_label_name_to_label_id_dict()
 
@@ -23,7 +26,7 @@ class Generator(keras.utils.Sequence):
         return len(self.labels_names_to_id)
 
     def __len__(self):
-        return int(np.floor(len(self.data) / self.batch_size))
+        return int(np.ceil(len(self.data) / self.batch_size))
 
     def __getitem__(self, index):
         if isinstance(index, slice):

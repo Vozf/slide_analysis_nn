@@ -1,0 +1,5 @@
+venv/
+train/datasets/
+train/logs/
+train/snapshots/
+.git/

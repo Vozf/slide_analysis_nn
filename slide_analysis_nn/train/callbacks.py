@@ -1,5 +1,6 @@
-from os import path, unlink
 from glob import glob
+from os import path, unlink
+
 import keras
 import tensorflow
 from tensorflow.python.framework.graph_util import convert_variables_to_constants
@@ -26,6 +27,9 @@ class TB(keras.callbacks.TensorBoard):
             self.writer.flush()
 
         super().on_batch_end(batch, logs)
+
+    def on_epoch_end(self, *args, **kwargs):
+        self.on_batch_end(*args, **kwargs)
 
 def f1(y_true, y_pred):
     def recall(y_true, y_pred):

@@ -1,24 +1,19 @@
-from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 
-from shapely.geometry import Polygon, box
-
+import numpy as np
+from matplotlib import pyplot as plt
 from openslide import open_slide
+from os.path import basename, join
+from shapely.geometry import Polygon, MultiPolygon, box
 
-from train.datasets_preparation.settings import (
+from slide_analysis_nn.train.datasets_preparation.settings import (
     DEFAULT_CLASS_NAME,
     BACKGROUND_CLASS_NAME,
     UNLABELED_IMAGES_DIR,
-    LABELED_IMAGES_DIR,
-    SMALL_WITH_TUMOR_IMAGES_DIR
+    LABELED_IMAGES_DIR
 )
-from utils.constants import TILE_SIZE, TILE_STEP, AREA_PROCESSING_MULTIPLIER
-import numpy as np
-from os.path import basename, join
-from train.datasets_preparation.utils import Label
-from matplotlib import pyplot as plt
-
-from utils.functions import dict_assign
+from slide_analysis_nn.utils.constants import TILE_SIZE, TILE_STEP, AREA_PROCESSING_MULTIPLIER, MAX_TILES_PER_TUMOR
+from slide_analysis_nn.utils.functions import dict_assign
 
 
 class Slide:
@@ -29,15 +24,20 @@ class Slide:
     def cut_tile(self, x, y, width=TILE_SIZE, height=TILE_SIZE):
         return self.slide.read_region((x, y), 0, (width, height))
 
-    def cut_polygons_data(self, bounding_box_polygons, draw_invalid_polygons=False):
+    def cut_polygons_data(self, asap_polygons, draw_invalid_polygons=False):
+        if not asap_polygons:
+            return {}
+
         print('processing slide {}'.format(self.slide_path))
 
         shapely_poly = [self._create_shapely_polygon(poly, draw_invalid_polygons) for poly in
-                        bounding_box_polygons]
-        filtered_shapely_polygons = filter(None, np.hstack(shapely_poly))
+                        asap_polygons]
+        global_multipolygon = MultiPolygon(filter(None, np.hstack(shapely_poly)))
 
         with ThreadPoolExecutor() as executor:
-            dicts = list(executor.map(self._process_polygon, filtered_shapely_polygons))
+            dicts = list(executor.map(
+                lambda current_polygon: self._process_polygon(current_polygon, global_multipolygon),
+                global_multipolygon))
 
         return dict_assign({}, *dicts)
 
@@ -66,39 +66,33 @@ class Slide:
 
         return None
 
-    def _process_polygon(self, polygon):
-        print(self._get_bounding_box_for_polygon(polygon), self._get_processing_area_for_polygon(polygon))
-        dictionary = defaultdict(list)
+    def _process_polygon(self, current_polygon, global_multipolygon):
+        dictionary = {}
 
-        x1pa, y1pa, x2pa, y2pa = self._get_processing_area_for_polygon(polygon)
-
-        # if x2pa - x1pa > 30000:
-        #     return {}
+        x1pa, y1pa, x2pa, y2pa = self._get_processing_area_for_polygon(current_polygon)
 
         # self._save_tile((x1pa, y1pa, x2pa, y2pa), dir_path=SMALL_WITH_TUMOR_IMAGES_DIR, ext='tif')
         x = range(x1pa, x2pa, TILE_STEP)
         y = range(y1pa, y2pa, TILE_STEP)
         coords_to_extract = np.transpose([np.tile(x, len(y)), np.repeat(y, len(x))])
 
+        if coords_to_extract.shape[0] > MAX_TILES_PER_TUMOR:
+            return {}
+
+        print(self._get_bounding_box_for_polygon(current_polygon), self._get_processing_area_for_polygon(current_polygon))
+
         with ThreadPoolExecutor() as executor:
             path_and_classes = executor.map(
-                lambda coords: self.save_training_example(*coords, polygon), coords_to_extract)
+                lambda coords: self.save_training_example(*coords, global_multipolygon), coords_to_extract)
 
         for class_name, image_path in path_and_classes:
-            dictionary[image_path].append(
-                Label(
-                    path=image_path,
-                    x1=None,
-                    y1=None,
-                    x2=None,
-                    y2=None,
-                    class_name=class_name))
+            dictionary[image_path] = class_name
 
         return dictionary
 
-    def save_training_example(self, x_coord, y_coord, polygon):
+    def save_training_example(self, x_coord, y_coord, global_multipolygon):
         tile_box = (x_coord, y_coord, x_coord + TILE_SIZE, y_coord + TILE_SIZE)
-        if self._is_intersected(polygon, tile_box=tile_box):
+        if self._is_intersected(global_multipolygon, tile_box=tile_box):
             dir = LABELED_IMAGES_DIR
             class_name = DEFAULT_CLASS_NAME
 
@@ -110,7 +104,7 @@ class Slide:
         return class_name, image_path
 
     def _get_processing_area_for_polygon(self, polygon):
-        x1, y1, x2, y2 =  self._get_bounding_box_for_polygon(polygon)
+        x1, y1, x2, y2 = self._get_bounding_box_for_polygon(polygon)
 
         # enlarge_area_x = int(AREA_PROCESSING_MULTIPLIER * TILE_SIZE)
         # enlarge_area_y = int(AREA_PROCESSING_MULTIPLIER * TILE_SIZE)
@@ -151,7 +145,7 @@ class Slide:
         tile = self.cut_tile(tile_box[0], tile_box[1], tile_box[2] - tile_box[0],
                              tile_box[3] - tile_box[1])
 
-        image_name = "{0}_{1}:{2}:{3}:{4}.{5}".format(basename(self.slide_path), *tile_box, ext)
+        image_name = "{0}_({1}-{2}-{3}-{4}).{5}".format(basename(self.slide_path), *tile_box, ext)
         image_path = join(dir_path, image_name)
 
         tile.save(image_path)

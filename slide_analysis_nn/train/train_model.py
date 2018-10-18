@@ -1,40 +1,31 @@
+import glob
 import logging
 import os
 
 import keras
 import tensorflow
+from keras import Model
+from keras.applications.inception_v3 import InceptionV3
+from keras.callbacks import TensorBoard
+from keras.layers import GlobalAveragePooling2D, Dense
 
-from train.callbacks import TB
-from keras.models import Sequential
-from keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten
-
-from train.datasets_preparation.preparation import DatasetPreparation
-from train.generator import Generator
-from keras.utils import multi_gpu_model
-from tensorflow.python.framework.graph_util import convert_variables_to_constants
-
-
-from train.callbacks import (
-    TensorGraphConverter,
-    BestModelCheckpoint,
-)
-from train.datasets_preparation.settings import (
-    CLASS_MAPPING_FILE_PATH,
+from slide_analysis_nn.train import Generator
+from slide_analysis_nn.train.callbacks import BestModelCheckpoint
+from slide_analysis_nn.train.callbacks import TB
+from slide_analysis_nn.train.datasets_preparation import DatasetPreparation
+from slide_analysis_nn.train.datasets_preparation.settings import (
     TRAIN_DATASET_FILE_PATH,
     TEST_DATASET_FILE_PATH
 )
-from train.settings import (
+from slide_analysis_nn.train.settings import (
     SNAPSHOTS_DIR,
     EPOCHS,
     BATCH_SIZE,
     TRAIN_STEPS,
     VALIDATION_STEPS,
-    TF_BOARD_LOGS_DIR,
-    MIN_DELTA,
-    PATIENCE
+    TF_BOARD_LOGS_DIR
 )
-from utils.constants import TILE_SIZE, TILE_SHAPE
-from utils.mixins import GPUSupportMixin
+from slide_analysis_nn.utils.mixins import GPUSupportMixin
 
 
 class Train(GPUSupportMixin):
@@ -69,34 +60,25 @@ class Train(GPUSupportMixin):
         )
 
         validation_generator = Generator(
-            TEST_DATASET_FILE_PATH,
+            TRAIN_DATASET_FILE_PATH,
             batch_size=BATCH_SIZE,
         )
 
         return train_generator, validation_generator
 
     def _create_model(self, num_classes):
-        model = Sequential()
-        model.add(Conv2D(32, (3, 3), padding='same', activation='relu',
-                         input_shape=TILE_SHAPE))
-        model.add(Conv2D(32, (3, 3), activation='relu'))
-        model.add(MaxPooling2D(pool_size=(2, 2)))
-        model.add(Dropout(0.25))
+        base_model = InceptionV3(weights='imagenet', include_top=False)
 
-        model.add(Conv2D(64, (3, 3), padding='same', activation='relu'))
-        model.add(Conv2D(64, (3, 3), activation='relu'))
-        model.add(MaxPooling2D(pool_size=(2, 2)))
-        model.add(Dropout(0.25))
+        # add a global spatial average pooling layer
+        x = base_model.output
+        x = GlobalAveragePooling2D()(x)
+        # let's add a fully-connected layer
+        x = Dense(4096, activation='relu')(x)
+        # and a logistic layer -- let's say we have 200 classes
+        predictions = Dense(num_classes, activation='softmax')(x)
 
-        model.add(Conv2D(64, (3, 3), padding='same', activation='relu'))
-        model.add(Conv2D(64, (3, 3), activation='relu'))
-        model.add(MaxPooling2D(pool_size=(2, 2)))
-        model.add(Dropout(0.25))
-
-        model.add(Flatten())
-        model.add(Dense(512, activation='relu'))
-        model.add(Dropout(0.5))
-        model.add(Dense(num_classes, activation='softmax'))
+        # this is the model we will train
+        model = Model(inputs=base_model.input, outputs=predictions)
 
         # compile model
         model.compile(
@@ -111,11 +93,12 @@ class Train(GPUSupportMixin):
         callbacks = []
 
         # save the prediction model
-        checkpoint = BestModelCheckpoint(
-            os.path.join(self.snapshot_path, 'slide_analysis_{epoch:02d}_{val_loss:.2f}.h5'),
-            verbose=1, monitor='val_loss', save_best_only=True, mode='min'
-        )
-        callbacks.append(checkpoint)
+        # checkpoint = BestModelCheckpoint(
+        #     os.path.join(self.snapshot_path, 'slide_analysis_{epoch:02d}_{val_loss:.2f}.h5'),
+        #     verbose=1,
+            # monitor='val_loss', save_best_only=True, mode='min'
+        # )
+        # callbacks.append(checkpoint)
 
         # Save the prediction model as tf_graph
         # converter = TensorGraphConverter(
@@ -128,11 +111,11 @@ class Train(GPUSupportMixin):
         #                                                patience=PATIENCE)
         # callbacks.append(early_stopping)
 
-        lr_scheduler = keras.callbacks.ReduceLROnPlateau(
-            monitor='loss', factor=0.1, patience=2, verbose=1, mode='auto',
-            epsilon=0.0001, cooldown=0, min_lr=0
-        )
-        callbacks.append(lr_scheduler)
+        # lr_scheduler = keras.callbacks.ReduceLROnPlateau(
+        #     monitor='loss', factor=0.1, patience=2, verbose=1, mode='auto',
+        #     epsilon=0.0001, cooldown=0, min_lr=0
+        # )
+        # callbacks.append(lr_scheduler)
 
         tensor_board = TB(
             log_every=True, log_dir=os.path.join(TF_BOARD_LOGS_DIR, 'train_{}'.format(
@@ -142,7 +125,13 @@ class Train(GPUSupportMixin):
 
         return callbacks
 
-    def start_training(self):
+    def _load_model(self):
+        files = glob.iglob(self.snapshot_path+'/../*/*.h5')
+        models = sorted(files, key=os.path.getmtime)
+        model_path = os.path.join(self.snapshot_path, models[-1])
+        return keras.models.load_model(model_path)
+
+    def start_training(self, continue_train=False):
         keras.backend.tensorflow_backend.set_session(self._get_session())
 
         train_generator, validation_generator = self._create_generators()
@@ -150,8 +139,7 @@ class Train(GPUSupportMixin):
         train_steps = TRAIN_STEPS if TRAIN_STEPS is not None else len(train_generator)
         val_steps = VALIDATION_STEPS if VALIDATION_STEPS is not None else len(validation_generator)
 
-        model = self._create_model(
-            num_classes=train_generator.num_classes())
+        model = self._load_model() if continue_train else self._create_model(num_classes=train_generator.num_classes())
 
         self.log.info(model.summary())
 
@@ -162,8 +150,9 @@ class Train(GPUSupportMixin):
             generator=train_generator,
             steps_per_epoch=train_steps,
             epochs=EPOCHS,
-            validation_data=validation_generator,
-            validation_steps=val_steps,
+            class_weight={0: 2, 1: 1},
+            # validation_data=validation_generator,
+            # validation_steps=val_steps,
             callbacks=callbacks,
         )
 
