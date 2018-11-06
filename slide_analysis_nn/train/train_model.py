@@ -8,7 +8,7 @@ from keras import Model
 
 from keras.applications.mobilenet_v2 import MobileNetV2
 from keras.callbacks import TensorBoard
-from keras.layers import GlobalAveragePooling2D, Dense
+from keras.layers import GlobalAveragePooling2D, Dense, Dropout
 
 from slide_analysis_nn.train import Generator
 from slide_analysis_nn.train.callbacks import BestModelCheckpoint
@@ -70,12 +70,13 @@ class Train(GPUSupportMixin):
     def _create_model(self, num_classes):
         base_model = MobileNetV2(weights='imagenet', include_top=False)
 
-        # add a global spatial average pooling layer
+        for layer in base_model.layers[:-4]:
+            layer.trainable = False
+
         x = base_model.output
         x = GlobalAveragePooling2D()(x)
-        # let's add a fully-connected layer
-        x = Dense(4096, activation='relu')(x)
-        # and a logistic layer -- let's say we have 200 classes
+        x = Dense(64, activation='relu')(x)
+        x = Dropout(0.5)(x)
         predictions = Dense(num_classes, activation='softmax')(x)
 
         # this is the model we will train
