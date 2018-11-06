@@ -60,7 +60,7 @@ class Train(GPUSupportMixin):
         )
 
         validation_generator = Generator(
-            TRAIN_DATASET_FILE_PATH,
+            TEST_DATASET_FILE_PATH,
             batch_size=BATCH_SIZE,
         )
 
