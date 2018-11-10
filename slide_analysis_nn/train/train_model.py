@@ -152,7 +152,7 @@ class Train(GPUSupportMixin):
             generator=train_generator,
             steps_per_epoch=train_steps,
             epochs=EPOCHS,
-            class_weight={0: 2, 1: 1},
+            class_weight={0: 1, 1: 2},
             validation_data=validation_generator,
             validation_steps=val_steps,
             callbacks=callbacks,
