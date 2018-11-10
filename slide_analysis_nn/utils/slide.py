@@ -137,8 +137,8 @@ class Slide:
 
         # enlarge_area_x = int(AREA_PROCESSING_MULTIPLIER * TILE_SIZE)
         # enlarge_area_y = int(AREA_PROCESSING_MULTIPLIER * TILE_SIZE)
-        enlarge_area_x = int((x2 - x1) * (AREA_PROCESSING_MULTIPLIER - 1) / 2)
-        enlarge_area_y = int((y2 - y1) * (AREA_PROCESSING_MULTIPLIER - 1) / 2)
+        enlarge_area_x = int((x2 - x1) * (AREA_PROCESSING_MULTIPLIER - 1) / 2) + 1
+        enlarge_area_y = int((y2 - y1) * (AREA_PROCESSING_MULTIPLIER - 1) / 2) + 1
 
         return max(x1 - enlarge_area_x, 0), \
                max(y1 - enlarge_area_y, 0), \
