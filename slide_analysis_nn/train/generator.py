@@ -14,7 +14,7 @@ class Generator(keras.utils.Sequence):
         self.batch_size = batch_size
 
         with open(data_path, 'r') as csvfile:
-            file = list(csv.reader(csvfile))
+            file = list(csv.reader(csvfile))[1:]
             self.data = np.asarray(file)
 
         if not self.data.shape[1]:
@@ -47,7 +47,7 @@ class Generator(keras.utils.Sequence):
         return rgb0_255 / 255, self._get_one_hot(label_names)
 
     def _get_one_hot(self, label_names):
-        labels = [self.labels_names_to_id[label_name] for label_name in label_names]
+        labels = [int(label_name) for label_name in label_names]
         return to_categorical(labels, self.num_classes())
 
     def delete_all_samples_except(self, num_samples):

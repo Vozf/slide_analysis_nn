@@ -1,11 +1,10 @@
 import csv
 import glob
-import itertools
 import logging
 import os
 import random
 import time
-from collections import Counter
+import pandas as pd
 
 from slide_analysis_nn.train.datasets_preparation.settings import (
     LABELED_IMAGES_DIR,
@@ -41,12 +40,14 @@ class DatasetPreparation(object):
 
         start = time.time()
 
-        dicts = list(map(self._process_slide, filter(None, polygon_images)))
+        dfs = map(self._process_slide, filter(None, polygon_images))
+
+        df = pd.concat(filter(lambda df: not df.empty, dfs))
 
         print('cut')
         print(time.time() - start)
 
-        return dicts
+        return df
 
     def _get_polygons_from_xml(self, xml_file_path):
         image_path = '{}.tif'.format(os.path.splitext(xml_file_path)[0])
@@ -66,82 +67,56 @@ class DatasetPreparation(object):
 
         return slide.cut_polygons_data(polygon_images['polygons'])
 
-    def get_class_mapping(self, train_dataset, test_dataset):
-        datasets_values = itertools.chain(train_dataset.values(), test_dataset.values())
-        class_names = {label for label in datasets_values}
-
-        return [list(reversed(i)) for i in enumerate(class_names)]
-
     def populate_prepared_datasets(self):
-        test_finished = {}
-        train_finished = {}
+        df = self._prepare_slides_for_training()
 
-        dicts = self._prepare_slides_for_training()
+        labels, uniques = df.class_name.factorize(sort=True)
+        df['class_encoded'] = labels
+        df.class_encoded = df.class_encoded.astype(int)
+        self.create_class_mapping_csv(uniques)
 
-        train_prepared, val_prepared = self._divide_to_train_and_validation(dicts)
+        train, val = self._divide_to_train_and_validation(df)
 
-        train_distribution = {k: v / len(train_prepared) for k, v in
-                              Counter(train_prepared.values()).items()}
-        val_distribution = {k: v / len(val_prepared) for k, v in
-                            Counter(val_prepared.values()).items()}
-        print('train data distribution:', train_distribution)
-        print('validation data distribution:', val_distribution)
+        train_distribution = train.class_name.value_counts(normalize=True)
+        val_distribution = val.class_name.value_counts(normalize=True)
 
-        shuffled_train = list(train_prepared.keys())
-        random.shuffle(shuffled_train)
-        train_finished.update(
-            {
-                i: train_prepared[i] for i in shuffled_train
-            }
-        )
+        print('train data distribution:\n', train_distribution.to_string())
+        print('validation data distribution:\n', val_distribution.to_string())
 
-        shuffled_test = list(val_prepared.keys())
-        random.shuffle(shuffled_test)
-        test_finished.update(
-            {
-                i: val_prepared[i] for i in shuffled_test
-            }
-        )
-
-        class_mapping = self.get_class_mapping(test_finished, train_finished)
-
-        self.create_csv_from_list(class_mapping, CLASS_MAPPING_FILE_PATH)
-
-        # create CSV files from slide_analysis_nn.train and test sets
-        self.create_csv_from_list(test_finished.items(), TEST_DATASET_FILE_PATH)
-        self.create_csv_from_list(train_finished.items(), TRAIN_DATASET_FILE_PATH)
+        train[['path', 'class_encoded']].to_csv(TRAIN_DATASET_FILE_PATH, index=False)
+        val[['path', 'class_encoded']].to_csv(TEST_DATASET_FILE_PATH, index=False)
 
     @staticmethod
-    def _divide_to_train_and_validation(dicts):
-        random.shuffle(dicts)
+    def _divide_to_train_and_validation(df):
+        num_samples_df = df.groupby(['slide_path']).size()
+        num_samples_in_slide = list(zip(num_samples_df.keys().values, num_samples_df.values))
+        random.shuffle(num_samples_in_slide)
 
-        dataset_size = sum([len(x) for x in dicts])
-        ideal_number_of_train_tumors = int(dataset_size * TRAIN_DATASET_PERCENT)
-        current_number_of_train_tumors = 0
+        ideal_number_of_train_tumors = int(len(df) * TRAIN_DATASET_PERCENT)
+        current_train_num_samples = 0
 
-        train = {}
-        test = {}
+        train = pd.DataFrame(columns=df.columns)
+        val = pd.DataFrame(columns=df.columns)
 
-        for tumor_data in dicts:
-            if current_number_of_train_tumors < ideal_number_of_train_tumors:
-                train.update(tumor_data)
-                current_number_of_train_tumors += len(tumor_data)
+
+        for slide_path, num_samples in num_samples_in_slide:
+            if current_train_num_samples < ideal_number_of_train_tumors:
+                train = train.append(df.where(df.slide_path == slide_path).dropna())
+                current_train_num_samples += num_samples
             else:
-                test.update(tumor_data)
+                val = val.append(df.where(df.slide_path == slide_path).dropna())
 
         print('Train data set percentage = {:.2%}'.format(
-            current_number_of_train_tumors / dataset_size))
+            current_train_num_samples / len(df)))
 
-        return train, test
+        train.class_encoded = train.class_encoded.astype(int)
+        val.class_encoded = val.class_encoded.astype(int)
+        return train, val
 
     @staticmethod
-    def create_csv_from_list(data, csv_path):
-        with open(csv_path, 'w', newline='') as csv_file:
-            list_writer = csv.writer(csv_file, delimiter='\n')
-
-            csv_data = [','.join(map(str, line)) for line in data]
-
-            list_writer.writerow(csv_data)
+    def create_class_mapping_csv(uniques):
+        pd.DataFrame(list(enumerate(uniques))).reindex(columns=[1, 0])\
+            .to_csv(CLASS_MAPPING_FILE_PATH, header=False, index=False)
 
     @staticmethod
     def get_label_name_to_label_id_dict():
