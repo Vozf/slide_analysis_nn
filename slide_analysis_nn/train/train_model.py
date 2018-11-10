@@ -60,7 +60,7 @@ class Train(GPUSupportMixin):
         )
 
         validation_generator = Generator(
-            TRAIN_DATASET_FILE_PATH,
+            TEST_DATASET_FILE_PATH,
             batch_size=BATCH_SIZE,
         )
 
@@ -93,12 +93,12 @@ class Train(GPUSupportMixin):
         callbacks = []
 
         # save the prediction model
-        # checkpoint = BestModelCheckpoint(
-        #     os.path.join(self.snapshot_path, 'slide_analysis_{epoch:02d}_{val_loss:.2f}.h5'),
-        #     verbose=1,
-            # monitor='val_loss', save_best_only=True, mode='min'
-        # )
-        # callbacks.append(checkpoint)
+        checkpoint = BestModelCheckpoint(
+            os.path.join(self.snapshot_path, 'slide_analysis_{epoch:02d}_{val_loss:.2f}.h5'),
+            verbose=1,
+            monitor='val_loss', save_best_only=True, mode='min'
+        )
+        callbacks.append(checkpoint)
 
         # Save the prediction model as tf_graph
         # converter = TensorGraphConverter(
@@ -117,8 +117,8 @@ class Train(GPUSupportMixin):
         # )
         # callbacks.append(lr_scheduler)
 
-        tensor_board = TB(
-            log_every=True, log_dir=os.path.join(TF_BOARD_LOGS_DIR, 'train_{}'.format(
+        tensor_board = TensorBoard(
+            log_dir=os.path.join(TF_BOARD_LOGS_DIR, 'train_{}'.format(
                 len(os.listdir(TF_BOARD_LOGS_DIR))))
         )
         callbacks.append(tensor_board)
@@ -151,8 +151,8 @@ class Train(GPUSupportMixin):
             steps_per_epoch=train_steps,
             epochs=EPOCHS,
             class_weight={0: 2, 1: 1},
-            # validation_data=validation_generator,
-            # validation_steps=val_steps,
+            validation_data=validation_generator,
+            validation_steps=val_steps,
             callbacks=callbacks,
         )
 

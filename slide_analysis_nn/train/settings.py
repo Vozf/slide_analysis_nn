@@ -2,9 +2,9 @@ import os
 
 PROJECT_PATH = os.path.abspath(os.path.dirname(__file__))
 
-EPOCHS = 200
-BATCH_SIZE = 2
-TRAIN_STEPS = 3
+EPOCHS = 30
+BATCH_SIZE = 4
+TRAIN_STEPS = None
 VALIDATION_STEPS = None
 MIN_DELTA = 1e-4
 PATIENCE = 5

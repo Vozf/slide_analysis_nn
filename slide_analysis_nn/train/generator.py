@@ -50,3 +50,6 @@ class Generator(keras.utils.Sequence):
         labels = [self.labels_names_to_id[label_name] for label_name in label_names]
         return to_categorical(labels, self.num_classes())
 
+    def delete_all_samples_except(self, num_samples):
+        self.data = self.data[np.random.choice(self.data.shape[0], num_samples, replace=False)]
+
