@@ -16,6 +16,7 @@ setup(
                       'openslide-python',
                       'shapely',
                       'requests',
+                      ' pandas',
                     ],
     url='',
     license='MIT',
