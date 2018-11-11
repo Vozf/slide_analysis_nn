@@ -10,11 +10,11 @@ from slide_analysis_nn.train.datasets_preparation.settings import (
     LABELED_IMAGES_DIR,
     TRAIN_DATASET_FILE_PATH,
     TEST_DATASET_FILE_PATH,
-    TRAIN_DATASET_PERCENT,
     UNLABELED_IMAGES_DIR,
     CLASS_MAPPING_FILE_PATH,
     SLIDE_IMAGES_DIR
 )
+from slide_analysis_nn.train.settings import TRAIN_TEST_DATASET_PERCENT
 from slide_analysis_nn.utils.ASAP_xml import read_polygons_xml
 from slide_analysis_nn.utils.slide import Slide
 
@@ -37,7 +37,7 @@ class DatasetPreparation(object):
 
         xmls = glob.iglob(str(SLIDE_IMAGES_DIR / '*xml'))
 
-        polygon_images = list(filter(None, map(self._get_polygons_from_xml, xmls)))
+        polygon_images = list(filter(None, map(self._get_polygons_from_xml, xmls)))[:4]
 
         start = time.time()
 
@@ -96,7 +96,7 @@ class DatasetPreparation(object):
         num_samples_in_slide = list(zip(num_samples_df.keys().values, num_samples_df.values))
         random.shuffle(num_samples_in_slide)
 
-        ideal_number_of_train_tumors = int(len(df) * TRAIN_DATASET_PERCENT)
+        ideal_number_of_train_tumors = int(len(df) * TRAIN_TEST_DATASET_PERCENT)
         current_train_num_samples = 0
 
         train = pd.DataFrame(columns=df.columns)
