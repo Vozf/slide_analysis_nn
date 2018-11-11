@@ -24,6 +24,10 @@ class DatasetPreparation(object):
         self.save_full_dataset_csv = save_full_dataset_csv
         self.log = logging.getLogger('datasets.preparation')
 
+        # default logging level, can be replaced by running --log=info
+        logging.basicConfig()
+        self.log.setLevel(logging.INFO)
+
     def _prepare_slides_for_training(self):
         for the_file in os.listdir(LABELED_IMAGES_DIR):
             file_path = LABELED_IMAGES_DIR / the_file
@@ -37,7 +41,7 @@ class DatasetPreparation(object):
 
         xmls = glob.iglob(str(SLIDE_IMAGES_DIR / '*xml'))
 
-        polygon_images = list(filter(None, map(self._get_polygons_from_xml, xmls)))[:4]
+        polygon_images = list(filter(None, map(self._get_polygons_from_xml, xmls)))
 
         start = time.time()
 
@@ -78,17 +82,23 @@ class DatasetPreparation(object):
 
         train, val = self._divide_to_train_and_validation(df)
 
-        train_distribution = train.class_name.value_counts(normalize=True)
-        val_distribution = val.class_name.value_counts(normalize=True)
-
-        print('train data distribution:\n', train_distribution.to_string())
-        print('validation data distribution:\n', val_distribution.to_string())
+        self._print_statistics(train, 'Train')
+        self._print_statistics(val, 'Test')
 
         if self.save_full_dataset_csv:
             df.to_csv(TRAIN_DATASET_FILE_PATH.parent / 'full.csv', index=False)
 
         train[['path', 'class_encoded']].to_csv(TRAIN_DATASET_FILE_PATH, index=False)
         val[['path', 'class_encoded']].to_csv(TEST_DATASET_FILE_PATH, index=False)
+
+    def _print_statistics(self, df, df_name='Dataset'):
+        df_class_distribution = df.class_name.value_counts(normalize=True)
+        df_slide_tiles_percentage = df.slide_path.str[-13:].value_counts(normalize=True)
+        self.log.info('-' * 8)
+        self.log.info(f'{df_name} data distribution:')
+        self.log.info(df_class_distribution.to_string())
+        self.log.info('')
+        self.log.info(df_slide_tiles_percentage.to_string())
 
     @staticmethod
     def _divide_to_train_and_validation(df):
