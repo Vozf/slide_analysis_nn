@@ -8,14 +8,15 @@ from keras import Model
 from keras.applications.inception_v3 import InceptionV3
 from keras.callbacks import TensorBoard
 from keras.layers import GlobalAveragePooling2D, Dense
+from keras_preprocessing.image import ImageDataGenerator
 
 from slide_analysis_nn.train import Generator
 from slide_analysis_nn.train.callbacks import BestModelCheckpoint
 from slide_analysis_nn.train.callbacks import TB
 from slide_analysis_nn.train.datasets_preparation import DatasetPreparation
 from slide_analysis_nn.train.datasets_preparation.settings import (
-    TRAIN_DATASET_FILE_PATH,
-    TEST_DATASET_FILE_PATH
+    TRAIN_DIR_NAME,
+    TEST_DIR_NAME
 )
 from slide_analysis_nn.train.settings import (
     SNAPSHOTS_DIR,
@@ -23,7 +24,8 @@ from slide_analysis_nn.train.settings import (
     BATCH_SIZE,
     TRAIN_STEPS,
     VALIDATION_STEPS,
-    TF_BOARD_LOGS_DIR
+    TF_BOARD_LOGS_DIR,
+    NETWORK_INPUT_SHAPE,
 )
 from slide_analysis_nn.utils.mixins import GPUSupportMixin
 
@@ -53,15 +55,27 @@ class Train(GPUSupportMixin):
         return tensorflow.Session(config=config)
 
     def _create_generators(self):
-        train_generator = Generator(
-            TRAIN_DATASET_FILE_PATH,
-            batch_size=BATCH_SIZE,
-        )
+        train_datagen = ImageDataGenerator(
+            rescale=1. / 255,
+            shear_range=0.2,
+            zoom_range=0.2,
+            horizontal_flip=True)
 
-        validation_generator = Generator(
-            TEST_DATASET_FILE_PATH,
+        test_datagen = ImageDataGenerator(rescale=1. / 255)
+
+        train_generator = train_datagen.flow_from_directory(
+            TRAIN_DIR_NAME,
+            target_size=NETWORK_INPUT_SHAPE[:2],
+            shuffle=True,
             batch_size=BATCH_SIZE,
-        )
+            class_mode='categorical')
+
+        validation_generator = test_datagen.flow_from_directory(
+            TEST_DIR_NAME,
+            target_size=NETWORK_INPUT_SHAPE[:2],
+            shuffle=True,
+            batch_size=BATCH_SIZE,
+            class_mode='categorical')
 
         return train_generator, validation_generator
 
@@ -136,7 +150,7 @@ class Train(GPUSupportMixin):
         train_steps = TRAIN_STEPS if TRAIN_STEPS is not None else len(train_generator)
         val_steps = VALIDATION_STEPS if VALIDATION_STEPS is not None else len(validation_generator)
 
-        model = self._load_model() if continue_train else self._create_model(num_classes=train_generator.num_classes())
+        model = self._load_model() if continue_train else self._create_model(num_classes=2)
 
         self.log.info(model.summary())
 

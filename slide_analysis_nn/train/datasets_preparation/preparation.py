@@ -7,13 +7,13 @@ import time
 import pandas as pd
 
 from slide_analysis_nn.train.datasets_preparation.settings import (
-    LABELED_IMAGES_DIR,
     TRAIN_DATASET_FILE_PATH,
     TEST_DATASET_FILE_PATH,
-    UNLABELED_IMAGES_DIR,
     CLASS_MAPPING_FILE_PATH,
     SLIDE_IMAGES_DIR,
     FULL_DATASET_FILE_PATH,
+    TEST_DIR_NAME,
+    TRAIN_DIR_NAME,
 )
 from slide_analysis_nn.train.settings import TRAIN_TEST_DATASET_PERCENT
 from slide_analysis_nn.utils.ASAP_xml import read_polygons_xml
@@ -40,19 +40,30 @@ class DatasetPreparation(object):
         if self.save_full_dataset_csv:
             df.to_csv(FULL_DATASET_FILE_PATH, index=False)
 
-    def generate_new_train_test_split_from_full_dataset(self, full_csv_path=FULL_DATASET_FILE_PATH):
-        full_df = pd.read_csv(full_csv_path)
-
-        self._save_train_test_split(full_df)
+    # def generate_new_train_test_split_from_full_dataset(self, full_csv_path=FULL_DATASET_FILE_PATH):
+    #     full_df = pd.read_csv(full_csv_path)
+    #
+    #     self._save_train_test_split(full_df)
 
     def _save_train_test_split(self, full_df):
         train, test = self._train_test_split(full_df)
+
+        self._move_samples_to_folders(train, TRAIN_DIR_NAME)
+        self._move_samples_to_folders(test, TEST_DIR_NAME)
 
         self._print_statistics(train, 'Train')
         self._print_statistics(test, 'Test')
 
         train[['path', 'class_encoded']].to_csv(TRAIN_DATASET_FILE_PATH, index=False)
         test[['path', 'class_encoded']].to_csv(TEST_DATASET_FILE_PATH, index=False)
+
+    def _move_samples_to_folders(self, df, folder):
+        def move_to_folder(row):
+            destination = folder / row.class_name / os.path.basename(row.path)
+            os.rename(row.path, destination)
+            return str(destination)
+
+        df['path'] = df.apply(move_to_folder, axis=1)
 
     def _encode_class_name(self, df):
         labels, uniques = df.class_name.factorize(sort=True)
@@ -61,9 +72,9 @@ class DatasetPreparation(object):
         return uniques
 
     def _prepare_slides_for_training(self):
-        for file in glob.glob(str(LABELED_IMAGES_DIR / '*')):
+        for file in glob.glob(str(TRAIN_DIR_NAME / '*' / '*')):
             os.remove(file)
-        for file in glob.glob(str(UNLABELED_IMAGES_DIR / '*')):
+        for file in glob.glob(str(TEST_DIR_NAME / '*' / '*')):
             os.remove(file)
 
         xmls = glob.iglob(str(SLIDE_IMAGES_DIR / '*xml'))
