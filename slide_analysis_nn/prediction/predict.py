@@ -27,15 +27,15 @@ class Predict:
         if not os.path.exists(self.snapshot_path):
             os.makedirs(self.snapshot_path)
 
-        DOWNLOAD_MODEL_PATH = os.path.join(self.snapshot_path, 'downloaded_model.h5')
+        DOWNLOAD_MODEL_PATH = self.snapshot_path / 'downloaded_model.h5'
 
         if download_weights and not os.path.isfile(DOWNLOAD_MODEL_PATH):
             print('Downloading weights')
             download_file(MODEL_DOWNLOAD_URL, DOWNLOAD_MODEL_PATH)
 
-        files = glob.iglob(self.snapshot_path+'/**/*.h5', recursive=True)
+        files = glob.iglob(str(self.snapshot_path / '**' / '*.h5'), recursive=True)
         models = sorted(files, key=os.path.getmtime)
-        model_path = os.path.join(self.snapshot_path, models[-1])
+        model_path = self.snapshot_path / models[-1]
         print(model_path)
         self.model = keras.models.load_model(model_path)
 

@@ -20,27 +20,28 @@ from slide_analysis_nn.utils.slide import Slide
 
 
 class DatasetPreparation(object):
-    def __init__(self):
+    def __init__(self, save_full_dataset_csv=True):
+        self.save_full_dataset_csv = save_full_dataset_csv
         self.log = logging.getLogger('datasets.preparation')
 
     def _prepare_slides_for_training(self):
         for the_file in os.listdir(LABELED_IMAGES_DIR):
-            file_path = os.path.join(LABELED_IMAGES_DIR, the_file)
+            file_path = LABELED_IMAGES_DIR / the_file
             if os.path.isfile(file_path):
                 os.unlink(file_path)
 
         for the_file in os.listdir(UNLABELED_IMAGES_DIR):
-            file_path = os.path.join(UNLABELED_IMAGES_DIR, the_file)
+            file_path = UNLABELED_IMAGES_DIR / the_file
             if os.path.isfile(file_path):
                 os.unlink(file_path)
 
-        xmls = glob.iglob(os.path.join(SLIDE_IMAGES_DIR, '*xml'))
+        xmls = glob.iglob(str(SLIDE_IMAGES_DIR / '*xml'))
 
-        polygon_images = map(self._get_polygons_from_xml, xmls)
+        polygon_images = list(filter(None, map(self._get_polygons_from_xml, xmls)))[:4]
 
         start = time.time()
 
-        dfs = map(self._process_slide, filter(None, polygon_images))
+        dfs = map(self._process_slide, polygon_images)
 
         df = pd.concat(filter(lambda df: not df.empty, dfs))
 

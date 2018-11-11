@@ -42,9 +42,8 @@ class Train(GPUSupportMixin):
                     len(self.gpu_ids))
             )
 
-        self.snapshot_path = os.path.join(
-            SNAPSHOTS_DIR, 'train_{}'.format(len(os.listdir(SNAPSHOTS_DIR)))
-        )
+        self.snapshot_path = SNAPSHOTS_DIR / 'train_{}'.format(len(os.listdir(SNAPSHOTS_DIR)))
+
         if not os.path.exists(self.snapshot_path):
             os.mkdir(self.snapshot_path)
 
@@ -94,7 +93,7 @@ class Train(GPUSupportMixin):
 
         # save the prediction model
         checkpoint = BestModelCheckpoint(
-            os.path.join(self.snapshot_path, 'slide_analysis_{epoch:02d}_{val_loss:.2f}.h5'),
+            self.snapshot_path / 'slide_analysis_{epoch:02d}_{val_loss:.2f}.h5',
             verbose=1,
             monitor='val_loss', save_best_only=True, mode='min'
         )
@@ -103,7 +102,7 @@ class Train(GPUSupportMixin):
         # Save the prediction model as tf_graph
         # converter = TensorGraphConverter(
         #     prediction_model,
-        #     os.path.join(self.snapshot_path),
+        #     self.snapshot_path,
         # )
         # callbacks.append(converter)
 
@@ -118,17 +117,17 @@ class Train(GPUSupportMixin):
         # callbacks.append(lr_scheduler)
 
         tensor_board = TensorBoard(
-            log_dir=os.path.join(TF_BOARD_LOGS_DIR, 'train_{}'.format(
+            log_dir=TF_BOARD_LOGS_DIR / 'train_{}'.format(
                 len(os.listdir(TF_BOARD_LOGS_DIR))))
-        )
+
         callbacks.append(tensor_board)
 
         return callbacks
 
     def _load_model(self):
-        files = glob.iglob(self.snapshot_path+'/../*/*.h5')
+        files = glob.iglob(str(self.snapshot_path / '**' / '*.h5'))
         models = sorted(files, key=os.path.getmtime)
-        model_path = os.path.join(self.snapshot_path, models[-1])
+        model_path = self.snapshot_path / models[-1]
         return keras.models.load_model(model_path)
 
     def start_training(self, continue_train=False):

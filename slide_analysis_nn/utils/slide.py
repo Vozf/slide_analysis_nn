@@ -47,11 +47,11 @@ class Slide:
         slide_df['slide_path'] = self.slide_path
 
         if self.create_xml_with_cut_tiles:
-            self.create_xml_annotation_with_marked_tiles(slide_df)
+            self._create_xml_annotation_with_marked_tiles(slide_df)
 
         return slide_df
 
-    def create_xml_annotation_with_marked_tiles(self, df):
+    def _create_xml_annotation_with_marked_tiles(self, df):
         if df.empty:
             return
 
@@ -118,7 +118,8 @@ class Slide:
         df = pd.DataFrame(tile_boxes, columns=columns)
 
         df['class_name'] = \
-            df.apply(lambda tile_box: self.classify_tile_box(tile_box, global_multipolygon), axis=1)
+            df.apply(lambda tile_box: self._classify_tile_box(tile_box, global_multipolygon),
+                     axis=1)
 
         with ThreadPoolExecutor() as executor:
             paths = executor.map(lambda tile_box: self._save_tile(tile_box),
@@ -128,7 +129,7 @@ class Slide:
 
         return df
 
-    def classify_tile_box(self, tile_box, global_multipolygon):
+    def _classify_tile_box(self, tile_box, global_multipolygon):
         return DEFAULT_CLASS_NAME \
             if self._is_contained(global_multipolygon, tile_box=tile_box) else BACKGROUND_CLASS_NAME
 
@@ -137,8 +138,8 @@ class Slide:
 
         # enlarge_area_x = int(AREA_PROCESSING_MULTIPLIER * TILE_SIZE)
         # enlarge_area_y = int(AREA_PROCESSING_MULTIPLIER * TILE_SIZE)
-        enlarge_area_x = int((x2 - x1) * (AREA_PROCESSING_MULTIPLIER - 1) / 2)
-        enlarge_area_y = int((y2 - y1) * (AREA_PROCESSING_MULTIPLIER - 1) / 2)
+        enlarge_area_x = int((x2 - x1) * (AREA_PROCESSING_MULTIPLIER - 1) / 2) + 1
+        enlarge_area_y = int((y2 - y1) * (AREA_PROCESSING_MULTIPLIER - 1) / 2) + 1
 
         return max(x1 - enlarge_area_x, 0), \
                max(y1 - enlarge_area_y, 0), \
