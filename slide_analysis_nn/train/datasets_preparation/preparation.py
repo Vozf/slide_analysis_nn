@@ -37,7 +37,7 @@ class DatasetPreparation(object):
 
         xmls = glob.iglob(str(SLIDE_IMAGES_DIR / '*xml'))
 
-        polygon_images = list(filter(None, map(self._get_polygons_from_xml, xmls)))[:4]
+        polygon_images = list(filter(None, map(self._get_polygons_from_xml, xmls)))
 
         start = time.time()
 
@@ -83,6 +83,9 @@ class DatasetPreparation(object):
 
         print('train data distribution:\n', train_distribution.to_string())
         print('validation data distribution:\n', val_distribution.to_string())
+
+        if self.save_full_dataset_csv:
+            df.to_csv(TRAIN_DATASET_FILE_PATH.parent / 'full.csv', index=False)
 
         train[['path', 'class_encoded']].to_csv(TRAIN_DATASET_FILE_PATH, index=False)
         val[['path', 'class_encoded']].to_csv(TEST_DATASET_FILE_PATH, index=False)
