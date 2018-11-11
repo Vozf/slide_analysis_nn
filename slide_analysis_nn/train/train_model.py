@@ -24,7 +24,8 @@ from slide_analysis_nn.train.settings import (
     BATCH_SIZE,
     TRAIN_STEPS,
     VALIDATION_STEPS,
-    TF_BOARD_LOGS_DIR
+    TF_BOARD_LOGS_DIR,
+    NETWORK_INPUT_SHAPE,
 )
 from slide_analysis_nn.utils.mixins import GPUSupportMixin
 
@@ -67,7 +68,8 @@ class Train(GPUSupportMixin):
         return train_generator, validation_generator
 
     def _create_model(self, num_classes):
-        base_model = MobileNetV2(weights='imagenet', include_top=False)
+        base_model = MobileNetV2(weights='imagenet', include_top=False,
+                                 input_shape=NETWORK_INPUT_SHAPE)
 
         for layer in base_model.layers[:-4]:
             layer.trainable = False
