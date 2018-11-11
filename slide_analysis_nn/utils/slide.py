@@ -15,9 +15,13 @@ from slide_analysis_nn.train.datasets_preparation.settings import (
     UNLABELED_IMAGES_DIR,
     LABELED_IMAGES_DIR
 )
+from slide_analysis_nn.train.settings import (
+    AREA_PROCESSING_MULTIPLIER,
+    MAX_TILES_PER_TUMOR,
+    AREA_TO_INTERSECT_MULTIPLIER,
+)
 from slide_analysis_nn.utils.ASAP_xml import append_polygons_to_existing_xml
-from slide_analysis_nn.utils.constants import TILE_SIZE, TILE_STEP, AREA_PROCESSING_MULTIPLIER, \
-    MAX_TILES_PER_TUMOR
+from slide_analysis_nn.tile import TILE_SIZE, TILE_STEP
 
 
 class Slide:
@@ -47,11 +51,11 @@ class Slide:
         slide_df['slide_path'] = self.slide_path
 
         if self.create_xml_with_cut_tiles:
-            self.create_xml_annotation_with_marked_tiles(slide_df)
+            self._create_xml_annotation_with_marked_tiles(slide_df)
 
         return slide_df
 
-    def create_xml_annotation_with_marked_tiles(self, df):
+    def _create_xml_annotation_with_marked_tiles(self, df):
         if df.empty:
             return
 
@@ -118,7 +122,8 @@ class Slide:
         df = pd.DataFrame(tile_boxes, columns=columns)
 
         df['class_name'] = \
-            df.apply(lambda tile_box: self.classify_tile_box(tile_box, global_multipolygon), axis=1)
+            df.apply(lambda tile_box: self._classify_tile_box(tile_box, global_multipolygon),
+                     axis=1)
 
         with ThreadPoolExecutor() as executor:
             paths = executor.map(lambda tile_box: self._save_tile(tile_box),
@@ -128,7 +133,7 @@ class Slide:
 
         return df
 
-    def classify_tile_box(self, tile_box, global_multipolygon):
+    def _classify_tile_box(self, tile_box, global_multipolygon):
         return DEFAULT_CLASS_NAME \
             if self._is_contained(global_multipolygon, tile_box=tile_box) else BACKGROUND_CLASS_NAME
 
@@ -147,7 +152,8 @@ class Slide:
 
     def _is_contained(self, polygon, tile_box):
         rect = box(*tile_box)
-        return polygon.intersects(scale(rect, 0.5, 0.5))
+        return polygon.intersects(scale(rect,
+                                        AREA_TO_INTERSECT_MULTIPLIER, AREA_TO_INTERSECT_MULTIPLIER))
 
     def _calculate_local_bounding_boxes(self, bbox, tile_box):
         poly = box(*tile_box).intersection(bbox)
@@ -179,7 +185,7 @@ class Slide:
                              tile_box.y2 - tile_box.y1)
 
         image_name = f"{basename(self.slide_path)}_({tile_box.x1}-{tile_box.y1}-{tile_box.x2}-{tile_box.y2}).{ext}"
-        image_path = join(dir_path, image_name)
+        image_path = dir_path / image_name
 
         tile.save(image_path)
         return image_path

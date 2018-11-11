@@ -6,7 +6,7 @@ import keras
 import numpy as np
 
 from slide_analysis_nn.train.datasets_preparation import DatasetPreparation
-from slide_analysis_nn.utils.constants import TILE_SIZE, TILE_STEP
+from slide_analysis_nn.tile import TILE_SIZE, TILE_STEP
 from slide_analysis_nn.utils.slide import Slide
 
 Point = Tuple[int, int]
