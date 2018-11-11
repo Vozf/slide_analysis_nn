@@ -19,6 +19,7 @@ from slide_analysis_nn.train.settings import (
     AREA_PROCESSING_MULTIPLIER,
     MAX_TILES_PER_TUMOR,
     AREA_TO_INTERSECT_MULTIPLIER,
+    NETWORK_INPUT_SHAPE,
 )
 from slide_analysis_nn.utils.ASAP_xml import append_polygons_to_existing_xml
 from slide_analysis_nn.tile import TILE_SIZE, TILE_STEP
@@ -182,7 +183,7 @@ class Slide:
             else UNLABELED_IMAGES_DIR
 
         tile = self.cut_tile(tile_box.x1, tile_box.y1, tile_box.x2 - tile_box.x1,
-                             tile_box.y2 - tile_box.y1)
+                             tile_box.y2 - tile_box.y1).resize(NETWORK_INPUT_SHAPE[:2])
 
         image_name = f"{basename(self.slide_path)}_({tile_box.x1}-{tile_box.y1}-{tile_box.x2}-{tile_box.y2}).{ext}"
         image_path = dir_path / image_name

@@ -68,7 +68,8 @@ class DatasetPreparation(object):
 
         xmls = glob.iglob(str(SLIDE_IMAGES_DIR / '*xml'))
 
-        polygon_images = list(filter(None, map(self._get_polygons_from_xml, xmls)))[:4]
+        polygon_images = list(filter(None, map(self._get_polygons_from_xml, xmls)))
+        # polygon_images = list(filter(None, map(self._get_polygons_from_xml, xmls)))[:4]
 
         start = time.time()
 
