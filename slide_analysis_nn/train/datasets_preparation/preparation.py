@@ -12,7 +12,8 @@ from slide_analysis_nn.train.datasets_preparation.settings import (
     TEST_DATASET_FILE_PATH,
     UNLABELED_IMAGES_DIR,
     CLASS_MAPPING_FILE_PATH,
-    SLIDE_IMAGES_DIR
+    SLIDE_IMAGES_DIR,
+    FULL_DATASET_FILE_PATH,
 )
 from slide_analysis_nn.train.settings import TRAIN_TEST_DATASET_PERCENT
 from slide_analysis_nn.utils.ASAP_xml import read_polygons_xml
@@ -28,20 +29,46 @@ class DatasetPreparation(object):
         logging.basicConfig()
         self.log.setLevel(logging.INFO)
 
-    def _prepare_slides_for_training(self):
-        for the_file in os.listdir(LABELED_IMAGES_DIR):
-            file_path = LABELED_IMAGES_DIR / the_file
-            if os.path.isfile(file_path):
-                os.unlink(file_path)
+    def create_dataset(self):
+        df = self._prepare_slides_for_training()
 
-        for the_file in os.listdir(UNLABELED_IMAGES_DIR):
-            file_path = UNLABELED_IMAGES_DIR / the_file
-            if os.path.isfile(file_path):
-                os.unlink(file_path)
+        uniques = self._encode_class_name(df)
+        self.create_class_mapping_csv(uniques)
+
+        self._save_train_test_split(df)
+
+        if self.save_full_dataset_csv:
+            df.to_csv(FULL_DATASET_FILE_PATH, index=False)
+
+    def generate_new_train_test_split_from_full_dataset(self, full_csv_path=FULL_DATASET_FILE_PATH):
+        full_df = pd.read_csv(full_csv_path)
+
+        self._save_train_test_split(full_df)
+
+    def _save_train_test_split(self, full_df):
+        train, test = self._train_test_split(full_df)
+
+        self._print_statistics(train, 'Train')
+        self._print_statistics(test, 'Test')
+
+        train[['path', 'class_encoded']].to_csv(TRAIN_DATASET_FILE_PATH, index=False)
+        test[['path', 'class_encoded']].to_csv(TEST_DATASET_FILE_PATH, index=False)
+
+    def _encode_class_name(self, df):
+        labels, uniques = df.class_name.factorize(sort=True)
+        df['class_encoded'] = labels
+        df.class_encoded = df.class_encoded.astype(int)
+        return uniques
+
+    def _prepare_slides_for_training(self):
+        for file in glob.glob(str(LABELED_IMAGES_DIR / '*')):
+            os.remove(file)
+        for file in glob.glob(str(UNLABELED_IMAGES_DIR / '*')):
+            os.remove(file)
 
         xmls = glob.iglob(str(SLIDE_IMAGES_DIR / '*xml'))
 
-        polygon_images = list(filter(None, map(self._get_polygons_from_xml, xmls)))
+        polygon_images = list(filter(None, map(self._get_polygons_from_xml, xmls)))[:4]
 
         start = time.time()
 
@@ -72,36 +99,17 @@ class DatasetPreparation(object):
 
         return slide.cut_polygons_data(polygon_images['polygons'])
 
-    def populate_prepared_datasets(self):
-        df = self._prepare_slides_for_training()
-
-        labels, uniques = df.class_name.factorize(sort=True)
-        df['class_encoded'] = labels
-        df.class_encoded = df.class_encoded.astype(int)
-        self.create_class_mapping_csv(uniques)
-
-        train, val = self._divide_to_train_and_validation(df)
-
-        self._print_statistics(train, 'Train')
-        self._print_statistics(val, 'Test')
-
-        if self.save_full_dataset_csv:
-            df.to_csv(TRAIN_DATASET_FILE_PATH.parent / 'full.csv', index=False)
-
-        train[['path', 'class_encoded']].to_csv(TRAIN_DATASET_FILE_PATH, index=False)
-        val[['path', 'class_encoded']].to_csv(TEST_DATASET_FILE_PATH, index=False)
-
     def _print_statistics(self, df, df_name='Dataset'):
         df_class_distribution = df.class_name.value_counts(normalize=True)
         df_slide_tiles_percentage = df.slide_path.str[-13:].value_counts(normalize=True)
-        self.log.info('-' * 8)
-        self.log.info(f'{df_name} data distribution:')
+        self.log.info('-' * 50)
+        self.log.info(f'{df_name} data distribution of {len(df)} samples:')
         self.log.info(df_class_distribution.to_string())
         self.log.info('')
         self.log.info(df_slide_tiles_percentage.to_string())
 
     @staticmethod
-    def _divide_to_train_and_validation(df):
+    def _train_test_split(df):
         num_samples_df = df.groupby(['slide_path']).size()
         num_samples_in_slide = list(zip(num_samples_df.keys().values, num_samples_df.values))
         random.shuffle(num_samples_in_slide)
@@ -110,22 +118,21 @@ class DatasetPreparation(object):
         current_train_num_samples = 0
 
         train = pd.DataFrame(columns=df.columns)
-        val = pd.DataFrame(columns=df.columns)
-
+        test = pd.DataFrame(columns=df.columns)
 
         for slide_path, num_samples in num_samples_in_slide:
             if current_train_num_samples < ideal_number_of_train_tumors:
                 train = train.append(df.where(df.slide_path == slide_path).dropna())
                 current_train_num_samples += num_samples
             else:
-                val = val.append(df.where(df.slide_path == slide_path).dropna())
+                test = test.append(df.where(df.slide_path == slide_path).dropna())
 
         print('Train data set percentage = {:.2%}'.format(
             current_train_num_samples / len(df)))
 
         train.class_encoded = train.class_encoded.astype(int)
-        val.class_encoded = val.class_encoded.astype(int)
-        return train, val
+        test.class_encoded = test.class_encoded.astype(int)
+        return train, test
 
     @staticmethod
     def create_class_mapping_csv(uniques):
