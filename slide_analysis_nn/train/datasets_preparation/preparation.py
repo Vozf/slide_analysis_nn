@@ -94,8 +94,8 @@ class DatasetPreparation(object):
     def _print_statistics(self, df, df_name='Dataset'):
         df_class_distribution = df.class_name.value_counts(normalize=True)
         df_slide_tiles_percentage = df.slide_path.str[-13:].value_counts(normalize=True)
-        self.log.info('-' * 8)
-        self.log.info(f'{df_name} data distribution:')
+        self.log.info('-' * 50)
+        self.log.info(f'{df_name} data distribution of {len(df)} samples:')
         self.log.info(df_class_distribution.to_string())
         self.log.info('')
         self.log.info(df_slide_tiles_percentage.to_string())
