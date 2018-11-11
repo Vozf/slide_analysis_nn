@@ -12,8 +12,7 @@ import pandas as pd
 from slide_analysis_nn.train.datasets_preparation.settings import (
     DEFAULT_CLASS_NAME,
     BACKGROUND_CLASS_NAME,
-    UNLABELED_IMAGES_DIR,
-    LABELED_IMAGES_DIR
+    SOURCE_PATH,
 )
 from slide_analysis_nn.train.settings import (
     AREA_PROCESSING_MULTIPLIER,
@@ -179,14 +178,11 @@ class Slide:
             return []
 
     def _save_tile(self, tile_box, ext='png'):
-        dir_path = LABELED_IMAGES_DIR if tile_box.class_name == DEFAULT_CLASS_NAME \
-            else UNLABELED_IMAGES_DIR
-
         tile = self.cut_tile(tile_box.x1, tile_box.y1, tile_box.x2 - tile_box.x1,
                              tile_box.y2 - tile_box.y1).resize(NETWORK_INPUT_SHAPE[:2])
 
         image_name = f"{basename(self.slide_path)}_({tile_box.x1}-{tile_box.y1}-{tile_box.x2}-{tile_box.y2}).{ext}"
-        image_path = dir_path / image_name
+        image_path = SOURCE_PATH / image_name
 
         tile.save(image_path)
         return image_path
