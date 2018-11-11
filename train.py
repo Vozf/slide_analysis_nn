@@ -4,7 +4,8 @@ from slide_analysis_nn.train.datasets_preparation import DatasetPreparation
 
 def main():
     dataset_preparation = DatasetPreparation()
-    dataset_preparation.populate_prepared_datasets()
+    dataset_preparation.create_dataset()
+    # dataset_preparation.generate_new_train_test_split_from_full_dataset()
     #
     train = Train()
     train.start_training()

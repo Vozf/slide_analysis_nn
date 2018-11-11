@@ -93,9 +93,8 @@ class Train(GPUSupportMixin):
 
         # save the prediction model
         checkpoint = BestModelCheckpoint(
-            self.snapshot_path / 'slide_analysis_{epoch:02d}_{val_loss:.2f}.h5',
-            verbose=1,
-            monitor='val_loss', save_best_only=True, mode='min'
+            str(self.snapshot_path / 'slide_analysis_{epoch:02d}_{val_acc:.2f}.h5'),
+            verbose=1, monitor='val_acc', save_best_only=True, mode='max'
         )
         callbacks.append(checkpoint)
 
@@ -116,9 +115,8 @@ class Train(GPUSupportMixin):
         # )
         # callbacks.append(lr_scheduler)
 
-        tensor_board = TensorBoard(
-            log_dir=TF_BOARD_LOGS_DIR / 'train_{}'.format(
-                len(os.listdir(TF_BOARD_LOGS_DIR))))
+        tensor_board = TensorBoard(log_dir=str(TF_BOARD_LOGS_DIR /
+                                               f'train_{len(os.listdir(TF_BOARD_LOGS_DIR))}'))
 
         callbacks.append(tensor_board)
 
