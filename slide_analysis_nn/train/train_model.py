@@ -84,7 +84,7 @@ class Train(GPUSupportMixin):
         base_model = MobileNetV2(weights='imagenet', include_top=False,
                                  input_shape=NETWORK_INPUT_SHAPE)
 
-        for layer in base_model.layers[:-4]:
+        for layer in base_model.layers:
             layer.trainable = False
 
         x = base_model.output
