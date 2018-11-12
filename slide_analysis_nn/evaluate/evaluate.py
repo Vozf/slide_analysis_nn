@@ -18,6 +18,7 @@ class Evaluate:
             models = sorted(files, key=os.path.getmtime)
             model_path = SNAPSHOTS_DIR / models[-1]
 
+        print(f'Using model: {model_path}')
         self.model = keras.models.load_model(str(model_path), custom_objects={'auc_roc': auc_roc})
 
     def evaluate(self, images_path):
