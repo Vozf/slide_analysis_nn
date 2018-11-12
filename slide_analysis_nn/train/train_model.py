@@ -7,7 +7,7 @@ import tensorflow
 from keras import Model
 from keras.applications.inception_v3 import InceptionV3
 from keras.callbacks import TensorBoard
-from keras.layers import GlobalAveragePooling2D, Dense
+from keras.layers import GlobalAveragePooling2D, Dense, Dropout
 from keras_preprocessing.image import ImageDataGenerator
 
 from slide_analysis_nn.train import Generator
@@ -82,13 +82,14 @@ class Train(GPUSupportMixin):
     def _create_model(self, num_classes):
         base_model = InceptionV3(weights='imagenet', include_top=False)
 
-        # add a global spatial average pooling layer
         x = base_model.output
         x = GlobalAveragePooling2D()(x)
-        # let's add a fully-connected layer
-        x = Dense(4096, activation='relu')(x)
-        # and a logistic layer -- let's say we have 200 classes
+        x = Dense(128, activation='relu')(x)
+        x = Dropout(0.5)(x)
         predictions = Dense(num_classes, activation='softmax')(x)
+
+        for layer in base_model.layers:
+            layer.trainable = False
 
         # this is the model we will train
         model = Model(inputs=base_model.input, outputs=predictions)
@@ -97,7 +98,7 @@ class Train(GPUSupportMixin):
         model.compile(
             loss='categorical_crossentropy',
             metrics=['accuracy'],
-            optimizer=keras.optimizers.adam(lr=1e-4, clipnorm=0.001)
+            optimizer=keras.optimizers.adam()
         )
 
         return model
