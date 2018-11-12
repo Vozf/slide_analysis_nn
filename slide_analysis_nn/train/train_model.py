@@ -11,7 +11,7 @@ from keras.layers import GlobalAveragePooling2D, Dense
 from keras_preprocessing.image import ImageDataGenerator
 
 from slide_analysis_nn.train import Generator
-from slide_analysis_nn.train.callbacks import BestModelCheckpoint, auc_roc
+from slide_analysis_nn.train.callbacks import BestModelCheckpoint
 from slide_analysis_nn.train.callbacks import TB
 from slide_analysis_nn.train.datasets_preparation import DatasetPreparation
 from slide_analysis_nn.train.datasets_preparation.settings import (
@@ -96,7 +96,7 @@ class Train(GPUSupportMixin):
         # compile model
         model.compile(
             loss='categorical_crossentropy',
-            metrics=['accuracy', auc_roc],
+            metrics=['accuracy'],
             optimizer=keras.optimizers.adam(lr=1e-4, clipnorm=0.001)
         )
 
