@@ -58,6 +58,9 @@ class DatasetPreparation(object):
         test[['path', 'class_encoded']].to_csv(TEST_DATASET_FILE_PATH, index=False)
 
     def _move_samples_to_folders(self, df, folder):
+        if df.empty:
+            return
+
         def move_to_folder(row):
             destination = folder / row.class_name / os.path.basename(row.path)
             os.rename(row.path, destination)
