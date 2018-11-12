@@ -11,17 +11,28 @@ from slide_analysis_nn.train.settings import SNAPSHOTS_DIR, NETWORK_INPUT_SHAPE,
 
 
 class Evaluate:
-    def __init__(self, model_path=None):
-        if not model_path:
-            files = glob.iglob(str(SNAPSHOTS_DIR / '**' / '*.h5'))
-            models = sorted(files, key=os.path.getmtime)
-            model_path = SNAPSHOTS_DIR / models[-1]
+    def __init__(self, model):
+        self.model = model
 
+    @staticmethod
+    def from_path(model_path):
         print(f'Using model: {model_path}')
-        self.model = keras.models.load_model(str(model_path))
+        model = keras.models.load_model(str(model_path))
+        return Evaluate(model)
+
+    @staticmethod
+    def from_latest_model():
+        files = glob.iglob(str(SNAPSHOTS_DIR / '**' / '*.h5'))
+        models = sorted(files, key=os.path.getmtime)
+        model_path = SNAPSHOTS_DIR / models[-1]
+
+        return Evaluate.from_path(model_path)
 
     def evaluate(self, images_path):
         generator = self._get_generator(images_path)
+        self.evaluate_generator(generator)
+
+    def evaluate_generator(self, generator):
         y_true = generator.classes
         y_pred = self.model.predict_generator(generator, steps=len(generator))
         y_pred = np.argmax(y_pred, axis=1)
@@ -47,7 +58,7 @@ class Evaluate:
 
 
 if __name__ == '__main__':
-    evaluate = Evaluate()
+    evaluate = Evaluate.from_latest_model()
 
     print('-' * 50)
     print('Train')
