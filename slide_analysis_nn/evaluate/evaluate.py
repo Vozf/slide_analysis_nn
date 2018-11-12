@@ -6,6 +6,7 @@ import numpy as np
 from keras_preprocessing.image import ImageDataGenerator
 from sklearn.metrics import roc_auc_score, f1_score, confusion_matrix
 
+from slide_analysis_nn.train.callbacks import auc_roc
 from slide_analysis_nn.train.datasets_preparation.settings import TEST_DIR_NAME
 from slide_analysis_nn.train.settings import SNAPSHOTS_DIR, NETWORK_INPUT_SHAPE, BATCH_SIZE
 
@@ -17,7 +18,7 @@ class Evaluate:
             models = sorted(files, key=os.path.getmtime)
             model_path = SNAPSHOTS_DIR / models[-1]
 
-        self.model = keras.models.load_model(str(model_path))
+        self.model = keras.models.load_model(str(model_path), custom_objects={'auc_roc': auc_roc})
 
     def evaluate(self, images_path=TEST_DIR_NAME):
         generator = self._get_generator(images_path)
