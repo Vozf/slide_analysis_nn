@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Tuple
 
 import pandas as pd
+from tqdm import tqdm
 
 from slide_analysis_nn.train.datasets_preparation.settings import (
     TRAIN_DATASET_FILE_PATH,
@@ -113,7 +114,7 @@ class DatasetPreparation:
 
         start = time.time()
 
-        dfs = map(self._process_slide, slide_mask_paths)
+        dfs = [self._process_slide(slide_mask) for slide_mask in tqdm(list(slide_mask_paths))]
 
         df = pd.concat(dfs)
 

@@ -17,6 +17,7 @@ setup(
                       'requests',
                       'pandas',
                       'scikit-learn',
+                      'tqdm',
                       ],
     url='',
     license='MIT',
