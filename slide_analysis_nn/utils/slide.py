@@ -1,3 +1,4 @@
+import uuid
 from typing import NamedTuple
 
 import cv2
@@ -87,7 +88,11 @@ class Slide:
         mask_coords = np.flip(np.column_stack(np.nonzero(mask == 1)), axis=1)
 
         if len(mask_coords) < num_samples:
-            raise RuntimeError(f'Too big num_samples : {num_samples}')
+            self.log.warning(f'Not enough samples ({len(mask_coords)})'
+                             f' in {os.path.basename(self.slide_path)}.'
+                             f' Upsampling to {num_samples}')
+
+            mask_coords = np.repeat(mask_coords, num_samples / len(mask_coords) + 1, axis=0)
 
         np.random.shuffle(mask_coords)
         mask_coords = mask_coords[:num_samples]
@@ -127,7 +132,9 @@ class Slide:
         tile = self.cut_tile(tile_box.x1, tile_box.y1, tile_box.x2 - tile_box.x1,
                              tile_box.y2 - tile_box.y1).resize(NETWORK_INPUT_SHAPE[:2])
 
-        image_name = f"{os.path.basename(self.slide_path)}_({tile_box.x1}-{tile_box.y1}-{tile_box.x2}-{tile_box.y2}).{ext}"
+        image_name = f"{os.path.basename(self.slide_path)}" \
+                     f"_({tile_box.x1}-{tile_box.y1}-{tile_box.x2}-{tile_box.y2})" \
+                     f"+{uuid.uuid4().hex[:6]}.{ext}"
         image_path = TRAIN_DIR_NAME / image_name
 
         tile.save(image_path)

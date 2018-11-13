@@ -156,8 +156,8 @@ class DatasetPreparation:
         train_slides = unique_slides[:num_train_slides]
         test_slides = unique_slides[num_train_slides:]
 
-        train = df.loc[df['slide_path'].isin(train_slides)]
-        test = df.loc[df['slide_path'].isin(test_slides)]
+        train = df.loc[df['slide_path'].isin(train_slides)].copy()
+        test = df.loc[df['slide_path'].isin(test_slides)].copy()
 
         print('Train data set percentage = {:.2%}'.format(
             len(train) / len(df)))
