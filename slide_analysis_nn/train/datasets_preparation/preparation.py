@@ -22,7 +22,6 @@ from slide_analysis_nn.train.datasets_preparation.settings import (
     LABELS,
 )
 from slide_analysis_nn.train.settings import TRAIN_TEST_DATASET_PERCENT
-from slide_analysis_nn.utils.ASAP_xml import read_polygons_xml
 from slide_analysis_nn.utils.slide import Slide
 
 
@@ -100,13 +99,17 @@ class DatasetPreparation:
 
     def _generate_dataset_df(self) -> pd.DataFrame:
 
-        mask_paths = glob.glob(str(SLIDE_IMAGES_DIR / '*_evaluation_mask.png'))
+        mask_paths = glob.glob(str(SLIDE_IMAGES_DIR / '*_evaluation_mask.png'))[:4]
 
         def get_slide_and_mask_path(mask_path):
             slide_path_no_ext = re.search('(.+)_evaluation_mask', mask_path).group(1)
-            return f'{slide_path_no_ext}.tif', mask_path
+            slide_path = f'{slide_path_no_ext}.tif'
+            if not os.path.isfile(slide_path):
+                self.log.warning(f'Path {slide_path} not exist')
+                return None
+            return slide_path, mask_path
 
-        slide_mask_paths = map(get_slide_and_mask_path, mask_paths)
+        slide_mask_paths = filter(None, map(get_slide_and_mask_path, mask_paths))
 
         start = time.time()
 
@@ -117,19 +120,6 @@ class DatasetPreparation:
         self.log.info(f'Slides cut in {time.time() - start} sec')
 
         return df
-
-    def _get_polygons_from_xml(self, xml_file_path):
-        image_path = '{}.tif'.format(os.path.splitext(xml_file_path)[0])
-        if not os.path.exists(image_path):
-            self.log.warning("Path {0} not exist".format(image_path))
-            return None
-
-        polygons = read_polygons_xml(xml_file_path)
-
-        return {
-            'image_path': image_path,
-            'polygons': polygons,
-        }
 
     def _process_slide(self, slide_and_mask_paths: Tuple[str, str]) -> pd.DataFrame:
         slide_path, mask_path = slide_and_mask_paths
