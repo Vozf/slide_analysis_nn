@@ -6,7 +6,7 @@ from slide_analysis_nn.tile import TILE_SIZE
 PROJECT_PATH = Path(os.path.abspath(os.path.dirname(__file__)))
 
 TRAIN_TEST_DATASET_PERCENT = 0.7
-NUMBER_OF_SAMPLES_PER_SLIDE = 500
+NUMBER_OF_SAMPLES_PER_SLIDE = 1000
 
 EPOCHS = 30
 BATCH_SIZE = 128
