@@ -99,7 +99,7 @@ class DatasetPreparation:
 
     def _generate_dataset_df(self) -> pd.DataFrame:
 
-        mask_paths = glob.glob(str(SLIDE_IMAGES_DIR / '*_evaluation_mask.png'))[:4]
+        mask_paths = glob.glob(str(SLIDE_IMAGES_DIR / '*_evaluation_mask.png'))
 
         def get_slide_and_mask_path(mask_path):
             slide_path_no_ext = re.search('(.+)_evaluation_mask', mask_path).group(1)
