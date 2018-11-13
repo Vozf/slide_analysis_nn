@@ -87,7 +87,13 @@ class DatasetPreparation(object):
 
         start = time.time()
 
-        dfs = map(self._process_slide, polygon_images)
+        dfs = []
+        for polygon_image in polygon_images:
+            try:
+                dfs.append(self._process_slide(polygon_image))
+            except Exception as e:
+                print(e)
+                continue
 
         df = pd.concat(filter(lambda df: not df.empty, dfs))
 
