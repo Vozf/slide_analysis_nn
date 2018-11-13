@@ -14,7 +14,6 @@ setup(
                       'numpy',
                       'h5py',
                       'openslide-python',
-                      'shapely',
                       'requests',
                       'pandas',
                       'scikit-learn',
