@@ -56,8 +56,8 @@ class Train(GPUSupportMixin):
 
     def _create_generators(self):
         train_datagen = ImageDataGenerator(
-            featurewise_center=True,
-            featurewise_std_normalization=True,
+            samplewise_center=True,
+            samplewise_std_normalization=True,
             shear_range=0.2,
             zoom_range=0.2,
             horizontal_flip=True,
