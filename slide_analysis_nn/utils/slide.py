@@ -130,7 +130,7 @@ class Slide:
 
     def _save_tile(self, tile_box: Tile_box, ext: str = 'png') -> str:
         tile = self.cut_tile(tile_box.x1, tile_box.y1, tile_box.x2 - tile_box.x1,
-                             tile_box.y2 - tile_box.y1).resize(NETWORK_INPUT_SHAPE[:2])
+                             tile_box.y2 - tile_box.y1)
 
         image_name = f"{os.path.basename(self.slide_path)}" \
                      f"_({tile_box.x1}-{tile_box.y1}-{tile_box.x2}-{tile_box.y2})" \
