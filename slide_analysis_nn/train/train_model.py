@@ -88,8 +88,8 @@ class Train(GPUSupportMixin):
         x = Dropout(0.5)(x)
         predictions = Dense(num_classes, activation='softmax')(x)
 
-        for layer in base_model.layers:
-            layer.trainable = False
+        # for layer in base_model.layers:
+        #     layer.trainable = False
 
         # this is the model we will train
         model = Model(inputs=base_model.input, outputs=predictions)
