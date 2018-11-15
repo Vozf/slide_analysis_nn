@@ -28,7 +28,8 @@ class Predict:
         if not os.path.exists(self.snapshot_path):
             os.makedirs(self.snapshot_path)
 
-        DOWNLOAD_MODEL_PATH = self.snapshot_path / 'downloaded_model.h5'
+        DOWNLOAD_MODEL_PATH = \
+            self.snapshot_path / f'downloaded_model{os.path.basename(MODEL_DOWNLOAD_URL)}.h5'
 
         if download_weights and not os.path.isfile(DOWNLOAD_MODEL_PATH):
             print('Downloading weights')
@@ -70,11 +71,14 @@ class Predict:
 
 
 def main():
-
     predict_example = Predict()
-    prediction = predict_example.predict_slide('/home/vozman/projects/slides/slide_analysis_nn/slide_analysis_nn/train/datasets/source/slide_images/hidden/Tumor_015.tif', area_to_predict=((74000, 0), (80000, 3000)))
+    prediction = predict_example \
+        .predict_slide(
+        'D:\\projects\\slide-analysis-nn\\slide_analysis_nn\\train\datasets\\source\\slide_images\\Tumor_041.tif',
+        area_to_predict=(74000, 0, 80000, 3000))
     prediction.create_map()
-    prediction.save_as_asap_annotations(truth_xml_path='/home/vozman/projects/slides/slide_analysis_nn/slide_analysis_nn/train/datasets/source/slide_images/hidden/Tumor_015true.xml')
+    prediction.save_as_asap_annotations(
+        truth_xml_path='D:\\projects\\slide-analysis-nn\\slide_analysis_nn\\train\datasets\\source\\slide_images\\Tumor_041.xml')
 
     # prediction.create_asap_annotations()
 
