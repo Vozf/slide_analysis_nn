@@ -41,6 +41,9 @@ class Predict:
         print(model_path)
         self.model = keras.models.load_model(model_path)
 
+        # for some reason it's neede to be run iside flask server
+        self.model._make_predict_function()
+
     def _get_session(self):
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
@@ -74,11 +77,11 @@ def main():
     predict_example = Predict()
     prediction = predict_example \
         .predict_slide(
-        'D:\\projects\\slide-analysis-nn\\slide_analysis_nn\\train\datasets\\source\\slide_images\\Tumor_041.tif',
+        'D:\\projects\\slide_analysis_nn\\slide_analysis_nn\\train\datasets\\source\\slide_images\\Tumor_041.tif',
         area_to_predict=(74000, 0, 80000, 3000))
     prediction.create_map()
     prediction.save_as_asap_annotations(
-        truth_xml_path='D:\\projects\\slide-analysis-nn\\slide_analysis_nn\\train\datasets\\source\\slide_images\\Tumor_041.xml')
+        truth_xml_path='D:\\projects\\slide_analysis_nn\\slide_analysis_nn\\train\datasets\\source\\slide_images\\Tumor_041.xml')
 
     # prediction.create_asap_annotations()
 
