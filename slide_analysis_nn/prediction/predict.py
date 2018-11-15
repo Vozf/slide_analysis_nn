@@ -1,6 +1,6 @@
 import glob
 import os
-import time
+from pathlib import Path
 
 import cv2
 import keras
@@ -14,16 +14,17 @@ from slide_analysis_nn.train.settings import (
     SNAPSHOTS_DIR,
     BATCH_SIZE)
 from slide_analysis_nn.utils.functions import download_file
+from slide_analysis_nn.utils.types import Area_box
 
 
 class Predict:
-    def __init__(self, download_weights=True, snapshot_path=SNAPSHOTS_DIR):
+    def __init__(self, download_weights: bool = True, snapshot_path: Path = SNAPSHOTS_DIR):
         self.snapshot_path = snapshot_path
         self._get_session()
         keras.backend.tensorflow_backend.set_session(self.session)
         self._load_model(download_weights)
 
-    def _load_model(self, download_weights):
+    def _load_model(self, download_weights: bool):
         if not os.path.exists(self.snapshot_path):
             os.makedirs(self.snapshot_path)
 
@@ -35,7 +36,7 @@ class Predict:
 
         files = glob.iglob(str(self.snapshot_path / '**' / '*.h5'), recursive=True)
         models = sorted(files, key=os.path.getmtime)
-        model_path = self.snapshot_path / models[-1]
+        model_path = str(self.snapshot_path / models[-1])
         print(model_path)
         self.model = keras.models.load_model(model_path)
 
@@ -44,13 +45,13 @@ class Predict:
         config.gpu_options.allow_growth = True
         self.session = tf.Session(config=config)
 
-    def predict_slide(self, slide_path, area_to_predict=None):
-        slide_generator = PredictGenerator(slide_path, batch_size=BATCH_SIZE,
-                                           area_to_predict=area_to_predict)
-        print('predict')
-        start = time.time()
+    def predict_slide(self, slide_path: str, area_to_predict: Area_box = None, tqdm_enabled=True):
+        slide_generator = PredictGenerator(slide_path,
+                                           batch_size=BATCH_SIZE,
+                                           area_to_predict=area_to_predict,
+                                           tqdm_enabled=tqdm_enabled)
+
         scores = self.model.predict_generator(slide_generator)
-        print(time.time() - start, 'sup')
 
         return PredictionResult(slide_path,
                                 scores=scores,
@@ -76,6 +77,7 @@ def main():
     prediction.save_as_asap_annotations(truth_xml_path='/home/vozman/projects/slides/slide_analysis_nn/slide_analysis_nn/train/datasets/source/slide_images/hidden/Tumor_015true.xml')
 
     # prediction.create_asap_annotations()
+
 
 if __name__ == '__main__':
     main()
