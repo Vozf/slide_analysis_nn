@@ -5,17 +5,19 @@ import os
 import keras
 import tensorflow
 from keras import Model
-from keras.applications.inception_v3 import InceptionV3
+
+from keras.applications.mobilenet_v2 import MobileNetV2
 from keras.callbacks import TensorBoard
-from keras.layers import GlobalAveragePooling2D, Dense
+from keras.layers import GlobalAveragePooling2D, Dense, Dropout
+from keras_preprocessing.image import ImageDataGenerator
 
 from slide_analysis_nn.train import Generator
 from slide_analysis_nn.train.callbacks import BestModelCheckpoint
 from slide_analysis_nn.train.callbacks import TB
 from slide_analysis_nn.train.datasets_preparation import DatasetPreparation
 from slide_analysis_nn.train.datasets_preparation.settings import (
-    TRAIN_DATASET_FILE_PATH,
-    TEST_DATASET_FILE_PATH
+    TRAIN_DIR_NAME,
+    TEST_DIR_NAME
 )
 from slide_analysis_nn.train.settings import (
     SNAPSHOTS_DIR,
@@ -23,7 +25,8 @@ from slide_analysis_nn.train.settings import (
     BATCH_SIZE,
     TRAIN_STEPS,
     VALIDATION_STEPS,
-    TF_BOARD_LOGS_DIR
+    TF_BOARD_LOGS_DIR,
+    NETWORK_INPUT_SHAPE,
 )
 from slide_analysis_nn.utils.mixins import GPUSupportMixin
 
@@ -42,9 +45,8 @@ class Train(GPUSupportMixin):
                     len(self.gpu_ids))
             )
 
-        self.snapshot_path = os.path.join(
-            SNAPSHOTS_DIR, 'train_{}'.format(len(os.listdir(SNAPSHOTS_DIR)))
-        )
+        self.snapshot_path = SNAPSHOTS_DIR / 'train_{}'.format(len(os.listdir(SNAPSHOTS_DIR)))
+
         if not os.path.exists(self.snapshot_path):
             os.mkdir(self.snapshot_path)
 
@@ -54,27 +56,49 @@ class Train(GPUSupportMixin):
         return tensorflow.Session(config=config)
 
     def _create_generators(self):
-        train_generator = Generator(
-            TRAIN_DATASET_FILE_PATH,
-            batch_size=BATCH_SIZE,
+        train_datagen = ImageDataGenerator(
+            samplewise_center=True,
+            samplewise_std_normalization=True,
+            shear_range=0.2,
+            zoom_range=0.2,
+            horizontal_flip=True,
+            vertical_flip=True,
+            width_shift_range=0.2,
+            height_shift_range=0.2,
         )
 
-        validation_generator = Generator(
-            TEST_DATASET_FILE_PATH,
-            batch_size=BATCH_SIZE,
+        test_datagen = ImageDataGenerator(
+            samplewise_center=True,
+            samplewise_std_normalization=True,
         )
+
+        train_generator = train_datagen.flow_from_directory(
+            TRAIN_DIR_NAME,
+            target_size=NETWORK_INPUT_SHAPE[:2],
+            shuffle=True,
+            batch_size=BATCH_SIZE,
+            class_mode='categorical')
+
+        validation_generator = test_datagen.flow_from_directory(
+            TEST_DIR_NAME,
+            target_size=NETWORK_INPUT_SHAPE[:2],
+            shuffle=True,
+            batch_size=BATCH_SIZE,
+            class_mode='categorical')
 
         return train_generator, validation_generator
 
     def _create_model(self, num_classes):
-        base_model = InceptionV3(weights='imagenet', include_top=False)
+        base_model = MobileNetV2(weights='imagenet', include_top=False,
+                                 input_shape=NETWORK_INPUT_SHAPE)
 
-        # add a global spatial average pooling layer
+        # for layer in base_model.layers:
+        #     layer.trainable = False
+
         x = base_model.output
         x = GlobalAveragePooling2D()(x)
-        # let's add a fully-connected layer
-        x = Dense(4096, activation='relu')(x)
-        # and a logistic layer -- let's say we have 200 classes
+        x = Dense(64, activation='relu')(x)
+        x = Dropout(0.5)(x)
         predictions = Dense(num_classes, activation='softmax')(x)
 
         # this is the model we will train
@@ -84,7 +108,7 @@ class Train(GPUSupportMixin):
         model.compile(
             loss='categorical_crossentropy',
             metrics=['accuracy'],
-            optimizer=keras.optimizers.adam(lr=1e-4, clipnorm=0.001)
+            optimizer=keras.optimizers.adam()
         )
 
         return model
@@ -94,16 +118,15 @@ class Train(GPUSupportMixin):
 
         # save the prediction model
         checkpoint = BestModelCheckpoint(
-            os.path.join(self.snapshot_path, 'slide_analysis_{epoch:02d}_{val_loss:.2f}.h5'),
-            verbose=1,
-            monitor='val_loss', save_best_only=True, mode='min'
+            str(self.snapshot_path / 'slide_analysis_{epoch:02d}_{val_acc:.2f}.h5'),
+            verbose=1, monitor='val_acc', save_best_only=True, mode='max'
         )
         callbacks.append(checkpoint)
 
         # Save the prediction model as tf_graph
         # converter = TensorGraphConverter(
         #     prediction_model,
-        #     os.path.join(self.snapshot_path),
+        #     self.snapshot_path,
         # )
         # callbacks.append(converter)
 
@@ -117,18 +140,17 @@ class Train(GPUSupportMixin):
         # )
         # callbacks.append(lr_scheduler)
 
-        tensor_board = TensorBoard(
-            log_dir=os.path.join(TF_BOARD_LOGS_DIR, 'train_{}'.format(
-                len(os.listdir(TF_BOARD_LOGS_DIR))))
-        )
+        tensor_board = TensorBoard(log_dir=str(TF_BOARD_LOGS_DIR /
+                                               f'train_{len(os.listdir(TF_BOARD_LOGS_DIR))}'))
+
         callbacks.append(tensor_board)
 
         return callbacks
 
     def _load_model(self):
-        files = glob.iglob(self.snapshot_path+'/../*/*.h5')
+        files = glob.iglob(str(self.snapshot_path / '**' / '*.h5'))
         models = sorted(files, key=os.path.getmtime)
-        model_path = os.path.join(self.snapshot_path, models[-1])
+        model_path = self.snapshot_path / models[-1]
         return keras.models.load_model(model_path)
 
     def start_training(self, continue_train=False):
@@ -139,7 +161,7 @@ class Train(GPUSupportMixin):
         train_steps = TRAIN_STEPS if TRAIN_STEPS is not None else len(train_generator)
         val_steps = VALIDATION_STEPS if VALIDATION_STEPS is not None else len(validation_generator)
 
-        model = self._load_model() if continue_train else self._create_model(num_classes=train_generator.num_classes())
+        model = self._load_model() if continue_train else self._create_model(num_classes=2)
 
         self.log.info(model.summary())
 
@@ -150,7 +172,6 @@ class Train(GPUSupportMixin):
             generator=train_generator,
             steps_per_epoch=train_steps,
             epochs=EPOCHS,
-            class_weight={0: 2, 1: 1},
             validation_data=validation_generator,
             validation_steps=val_steps,
             callbacks=callbacks,

@@ -1,152 +1,138 @@
+import uuid
+
+import cv2
+import logging
+import os
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
-from matplotlib import pyplot as plt
 from openslide import open_slide
-from os.path import basename, join
-from shapely.geometry import Polygon, MultiPolygon, box
+import pandas as pd
 
 from slide_analysis_nn.train.datasets_preparation.settings import (
     DEFAULT_CLASS_NAME,
     BACKGROUND_CLASS_NAME,
-    UNLABELED_IMAGES_DIR,
-    LABELED_IMAGES_DIR
+    TRAIN_DIR_NAME
 )
-from slide_analysis_nn.utils.constants import TILE_SIZE, TILE_STEP, AREA_PROCESSING_MULTIPLIER, MAX_TILES_PER_TUMOR
-from slide_analysis_nn.utils.functions import dict_assign
+from slide_analysis_nn.train.settings import (
+    NUMBER_OF_SAMPLES_PER_SLIDE,
+    HEALTHY_MASK_NUM_OF_DILLATIONS
+)
+from slide_analysis_nn.utils.ASAP_xml import append_polygons_to_existing_xml
+from slide_analysis_nn.tile import TILE_SIZE
+from slide_analysis_nn.utils.types import Area_box
 
 
 class Slide:
-    def __init__(self, slide_path):
-        self.slide_path = slide_path
+    def __init__(self, slide_path: str, create_xml_with_cut_tiles: bool = False):
+        self.slide_path, self.create_xml_with_cut_tiles = slide_path, create_xml_with_cut_tiles
+
         self.slide = open_slide(slide_path)
 
-    def cut_tile(self, x, y, width=TILE_SIZE, height=TILE_SIZE):
+        self.log = logging.getLogger('slide')
+
+        # default logging level, can be replaced by running --log=info
+        logging.basicConfig()
+        self.log.setLevel(logging.INFO)
+
+    def cut_tile(self, x: int, y: int, width: int = TILE_SIZE, height: int = TILE_SIZE):
         return self.slide.read_region((x, y), 0, (width, height))
 
-    def cut_polygons_data(self, asap_polygons, draw_invalid_polygons=False):
-        if not asap_polygons:
-            return {}
+    def generate_df_from_mask(self, mask_path: str) -> pd.DataFrame:
+        tumor_mask = cv2.cvtColor(cv2.imread(mask_path), cv2.COLOR_RGB2GRAY)
 
-        print('processing slide {}'.format(self.slide_path))
+        healthy_mask = self._get_healthy_mask(tumor_mask)
 
-        shapely_poly = [self._create_shapely_polygon(poly, draw_invalid_polygons) for poly in
-                        asap_polygons]
-        global_multipolygon = MultiPolygon(filter(None, np.hstack(shapely_poly)))
+        tumor_df = self._produce_samples_from_mask(tumor_mask, NUMBER_OF_SAMPLES_PER_SLIDE // 2)
+        healthy_df = self._produce_samples_from_mask(healthy_mask, NUMBER_OF_SAMPLES_PER_SLIDE // 2)
 
-        with ThreadPoolExecutor() as executor:
-            dicts = list(executor.map(
-                lambda current_polygon: self._process_polygon(current_polygon, global_multipolygon),
-                global_multipolygon))
+        tumor_df['class_name'] = DEFAULT_CLASS_NAME
+        healthy_df['class_name'] = BACKGROUND_CLASS_NAME
 
-        return dict_assign({}, *dicts)
+        df = pd.concat((tumor_df, healthy_df))
 
-    def _create_shapely_polygon(self, polygon, draw_invalid_polygons=False):
-        shapely_polygon = Polygon(polygon)
-        if shapely_polygon.is_valid:
-            return shapely_polygon
+        df['slide_path'] = self.slide_path
 
-        fixed_shapely_polygon = shapely_polygon.buffer(0)
+        if self.create_xml_with_cut_tiles:
+            self._create_xml_annotation_with_marked_tiles(df)
 
-        if draw_invalid_polygons:
-            plt.scatter(*np.asarray(polygon).T, c='r', s=200)
+        return df
 
-            if hasattr(fixed_shapely_polygon, 'exterior'):
-                plt.scatter(*np.array(fixed_shapely_polygon.exterior.coords.xy), c='g')
-            else:
-                [plt.scatter(*np.array(poly.exterior.coords.xy), c='g') for poly in
-                 fixed_shapely_polygon]
+    def _get_healthy_mask(self, tumor_mask: np.ndarray) -> np.ndarray:
+        """
+        Predicting non tumor on tumor mask gets mostly background.
+        So we create another mask which is essentially the surrounding area of tumor.
+        In this area tiles aren't background. They are healthy cells.
+        """
+        kernel = np.ones((5, 5), np.uint8)
+        dilation = cv2.dilate(tumor_mask, kernel, iterations=HEALTHY_MASK_NUM_OF_DILLATIONS)
+        tumor_border = cv2.dilate(tumor_mask, kernel, iterations=1)
+        return dilation - tumor_border
 
-            plt.show()
+    def _produce_samples_from_mask(self, mask: np.ndarray, num_samples: int) -> pd.DataFrame:
+        tile_boxes = self._get_tile_boxes(mask, num_samples)
 
-        if fixed_shapely_polygon.is_valid:
-            return fixed_shapely_polygon
-
-        print('invalid polygon at path: {}'.format(self.slide_path))
-
-        return None
-
-    def _process_polygon(self, current_polygon, global_multipolygon):
-        dictionary = {}
-
-        x1pa, y1pa, x2pa, y2pa = self._get_processing_area_for_polygon(current_polygon)
-
-        # self._save_tile((x1pa, y1pa, x2pa, y2pa), dir_path=SMALL_WITH_TUMOR_IMAGES_DIR, ext='tif')
-        x = range(x1pa, x2pa, TILE_STEP)
-        y = range(y1pa, y2pa, TILE_STEP)
-        coords_to_extract = np.transpose([np.tile(x, len(y)), np.repeat(y, len(x))])
-
-        if coords_to_extract.shape[0] > MAX_TILES_PER_TUMOR:
-            return {}
-
-        print(self._get_bounding_box_for_polygon(current_polygon), self._get_processing_area_for_polygon(current_polygon))
+        columns = ['x1', 'y1', 'x2', 'y2']
+        df = pd.DataFrame(tile_boxes, columns=columns)
 
         with ThreadPoolExecutor() as executor:
-            path_and_classes = executor.map(
-                lambda coords: self.save_training_example(*coords, global_multipolygon), coords_to_extract)
+            paths = executor.map(self._save_tile, df.itertuples(index=False))
 
-        for class_name, image_path in path_and_classes:
-            dictionary[image_path] = class_name
+        df['path'] = pd.DataFrame(paths)
+        return df
 
-        return dictionary
+    def _get_tile_boxes(self, mask: np.ndarray, num_samples: int) -> np.ndarray:
+        mask_coords = np.flip(np.column_stack(np.nonzero(mask == 1)), axis=1)
 
-    def save_training_example(self, x_coord, y_coord, global_multipolygon):
-        tile_box = (x_coord, y_coord, x_coord + TILE_SIZE, y_coord + TILE_SIZE)
-        if self._is_intersected(global_multipolygon, tile_box=tile_box):
-            dir = LABELED_IMAGES_DIR
-            class_name = DEFAULT_CLASS_NAME
+        if len(mask_coords) < num_samples:
+            self.log.warning(f'Not enough samples ({len(mask_coords)})'
+                             f' in {os.path.basename(self.slide_path)}.'
+                             f' Upsampling to {num_samples}')
 
-        else:
-            dir = UNLABELED_IMAGES_DIR
-            class_name = BACKGROUND_CLASS_NAME
+            mask_coords = np.repeat(mask_coords, num_samples / len(mask_coords) + 1, axis=0)
 
-        image_path = self._save_tile(tile_box, dir_path=dir)
-        return class_name, image_path
+        np.random.shuffle(mask_coords)
+        mask_coords = mask_coords[:num_samples]
 
-    def _get_processing_area_for_polygon(self, polygon):
-        x1, y1, x2, y2 = self._get_bounding_box_for_polygon(polygon)
+        MASK_DOWNSCALE_FACTOR = 32
+        slide_coords_of_center = np.asarray(
+            [(coord * MASK_DOWNSCALE_FACTOR + MASK_DOWNSCALE_FACTOR / 2) for coord in mask_coords])
 
-        # enlarge_area_x = int(AREA_PROCESSING_MULTIPLIER * TILE_SIZE)
-        # enlarge_area_y = int(AREA_PROCESSING_MULTIPLIER * TILE_SIZE)
-        enlarge_area_x = int((x2 - x1) * (AREA_PROCESSING_MULTIPLIER - 1)/2)
-        enlarge_area_y = int((y2 - y1) * (AREA_PROCESSING_MULTIPLIER - 1)/2)
+        slide_coords_of_upleft = np.asarray(
+            [(center - TILE_SIZE // 2).astype(int) for center in slide_coords_of_center])
 
-        return max(x1 - enlarge_area_x, 0), \
-               max(y1 - enlarge_area_y, 0), \
-               min(x2 + enlarge_area_x, self.slide.dimensions[0]), \
-               min(y2 + enlarge_area_y, self.slide.dimensions[1])
+        return np.column_stack((slide_coords_of_upleft, slide_coords_of_upleft + TILE_SIZE))
 
-    def _is_intersected(self, polygon, tile_box):
-        rect = box(*tile_box)
-        return polygon.intersects(rect)
+    def _create_xml_annotation_with_marked_tiles(self, df: pd.DataFrame):
+        if df.empty:
+            return
 
-    def _calculate_local_bounding_boxes(self, bbox, tile_box):
-        poly = box(*tile_box).intersection(bbox)
-        x1, y1, x2, y2 = tile_box
-        global_boxes = self._get_bounding_boxes_for_geometry(poly)
-        local_boxes = [(x1g - x1, y1g - y1, x2g - x1, y2g - y1) for x1g, y1g, x2g, y2g in global_boxes]
-        return local_boxes
+        xml_path = '{}_cut.xml'.format(os.path.splitext(self.slide_path)[0])
+        truth_xml_path = '{}.xml'.format(os.path.splitext(self.slide_path)[0])
 
-    def _get_bounding_box_for_polygon(self, poly):
-        points = np.array(poly.exterior.coords.xy).astype(np.int)
-        return points[0].min(), points[1].min(), points[0].max(), points[1].max()
+        def get_polygons(class_name):
+            tile = df.where(df.class_name == class_name)[['x1', 'y1', 'x2', 'y2']].dropna().values
+            polygon = np.concatenate((tile[..., None, :2], tile[..., None, 2:]), axis=1)
+            return polygon
 
-    def _get_bounding_boxes_for_geometry(self, geo):
-        try:
-            geoms = [geo] if hasattr(geo, 'exterior') else\
-                filter(lambda x: hasattr(x, 'exterior'), geo.geoms)
+        labeled = get_polygons(DEFAULT_CLASS_NAME)
+        unlabeled = get_polygons(BACKGROUND_CLASS_NAME)
 
-            return list(map(self._get_bounding_box_for_polygon, geoms))
-        except:
-            print('Unexpected type:',type(geo))
-            return []
+        append_polygons_to_existing_xml(np.concatenate((labeled, unlabeled)),
+                                        predicted_labels=[1] * (len(labeled)) + [0] * len(
+                                            unlabeled),
+                                        scores=[1] * (len(labeled)) + [0] * len(unlabeled),
+                                        source_xml_path=truth_xml_path,
+                                        output_xml_path=xml_path)
 
-    def _save_tile(self, tile_box, dir_path, ext='png'):
-        tile = self.cut_tile(tile_box[0], tile_box[1], tile_box[2] - tile_box[0],
-                             tile_box[3] - tile_box[1])
+    def _save_tile(self, tile_box: Area_box, ext: str = 'png') -> str:
+        tile = self.cut_tile(tile_box.x1, tile_box.y1, tile_box.x2 - tile_box.x1,
+                             tile_box.y2 - tile_box.y1)
 
-        image_name = "{0}_({1}-{2}-{3}-{4}).{5}".format(basename(self.slide_path), *tile_box, ext)
-        image_path = join(dir_path, image_name)
+        image_name = f"{os.path.basename(self.slide_path)}" \
+                     f"_({tile_box.x1}-{tile_box.y1}-{tile_box.x2}-{tile_box.y2})" \
+                     f"+{uuid.uuid4().hex[:6]}.{ext}"
+        image_path = TRAIN_DIR_NAME / image_name
 
         tile.save(image_path)
-        return image_path
+        return str(image_path)

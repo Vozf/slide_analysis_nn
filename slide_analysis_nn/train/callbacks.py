@@ -4,6 +4,7 @@ from os import path, unlink
 import keras
 import tensorflow
 from tensorflow.python.framework.graph_util import convert_variables_to_constants
+import tensorflow as tf
 
 
 class TB(keras.callbacks.TensorBoard):

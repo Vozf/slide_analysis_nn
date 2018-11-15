@@ -1,20 +1,21 @@
-import os
-
 from slide_analysis_nn.train.settings import PROJECT_PATH
 
-LABELED_IMAGES_DIR = os.path.join(PROJECT_PATH, 'datasets', 'source', 'labeled_images')
+SOURCE_PATH = PROJECT_PATH / 'datasets' / 'source'
+PREPARED_DATASETS_PATH = PROJECT_PATH / 'datasets' / 'prepared_datasets'
 
-TRAIN_DATASET_PERCENT = 0.9
+TRAIN_DIR_NAME = SOURCE_PATH / 'train'
+TEST_DIR_NAME = SOURCE_PATH / 'test'
 
-UNLABELED_IMAGES_DIR = os.path.join(PROJECT_PATH, 'datasets', 'source', 'unlabeled_images')
+SLIDE_IMAGES_DIR = SOURCE_PATH / 'slide_images'
+SMALL_WITH_TUMOR_IMAGES_DIR = SOURCE_PATH / 'small_with_tumor_images'
 
-SLIDE_IMAGES_DIR = os.path.join(PROJECT_PATH, 'datasets', 'source', 'slide_images')
-SMALL_WITH_TUMOR_IMAGES_DIR = os.path.join(PROJECT_PATH, 'datasets', 'source', 'small_with_tumor_images')
+TEST_DATASET_FILE_PATH = PREPARED_DATASETS_PATH / 'test.csv'
+TRAIN_DATASET_FILE_PATH = PREPARED_DATASETS_PATH / 'train.csv'
+FULL_DATASET_FILE_PATH = PREPARED_DATASETS_PATH / 'full.csv'
 
-
-TEST_DATASET_FILE_PATH = os.path.join(PROJECT_PATH, 'datasets', 'prepared_datasets', 'test.csv')
-TRAIN_DATASET_FILE_PATH = os.path.join(PROJECT_PATH, 'datasets', 'prepared_datasets', 'train.csv')
-CLASS_MAPPING_FILE_PATH = os.path.join(PROJECT_PATH, 'datasets', 'prepared_datasets', 'class_mapping.csv')
+CLASS_MAPPING_FILE_PATH = PREPARED_DATASETS_PATH / 'class_mapping.csv'
 
 BACKGROUND_CLASS_NAME = 'Background'
 DEFAULT_CLASS_NAME = 'Tumor'
+
+LABELS = [BACKGROUND_CLASS_NAME, DEFAULT_CLASS_NAME]
