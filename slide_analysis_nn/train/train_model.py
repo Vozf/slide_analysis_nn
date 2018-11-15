@@ -5,7 +5,8 @@ import os
 import keras
 import tensorflow
 from keras import Model
-from keras.applications.inception_v3 import InceptionV3
+
+from keras.applications.mobilenet_v2 import MobileNetV2
 from keras.callbacks import TensorBoard
 from keras.layers import GlobalAveragePooling2D, Dense, Dropout
 from keras_preprocessing.image import ImageDataGenerator
@@ -88,16 +89,17 @@ class Train(GPUSupportMixin):
         return train_generator, validation_generator
 
     def _create_model(self, num_classes):
-        base_model = InceptionV3(weights='imagenet', include_top=False)
-
-        x = base_model.output
-        x = GlobalAveragePooling2D()(x)
-        x = Dense(128, activation='relu')(x)
-        x = Dropout(0.5)(x)
-        predictions = Dense(num_classes, activation='softmax')(x)
+        base_model = MobileNetV2(weights='imagenet', include_top=False,
+                                 input_shape=NETWORK_INPUT_SHAPE)
 
         # for layer in base_model.layers:
         #     layer.trainable = False
+
+        x = base_model.output
+        x = GlobalAveragePooling2D()(x)
+        x = Dense(64, activation='relu')(x)
+        x = Dropout(0.5)(x)
+        predictions = Dense(num_classes, activation='softmax')(x)
 
         # this is the model we will train
         model = Model(inputs=base_model.input, outputs=predictions)
