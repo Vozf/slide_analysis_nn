@@ -1,5 +1,4 @@
 import uuid
-from typing import NamedTuple
 
 import cv2
 import logging
@@ -16,14 +15,12 @@ from slide_analysis_nn.train.datasets_preparation.settings import (
     TRAIN_DIR_NAME
 )
 from slide_analysis_nn.train.settings import (
-    NETWORK_INPUT_SHAPE,
     NUMBER_OF_SAMPLES_PER_SLIDE,
     HEALTHY_MASK_NUM_OF_DILLATIONS
 )
 from slide_analysis_nn.utils.ASAP_xml import append_polygons_to_existing_xml
 from slide_analysis_nn.tile import TILE_SIZE
-
-Tile_box = NamedTuple('Tile_box', [('x1', int), ('y1', int), ('x2', int), ('y2', int)])
+from slide_analysis_nn.utils.types import Area_box
 
 
 class Slide:
@@ -128,7 +125,7 @@ class Slide:
                                         source_xml_path=truth_xml_path,
                                         output_xml_path=xml_path)
 
-    def _save_tile(self, tile_box: Tile_box, ext: str = 'png') -> str:
+    def _save_tile(self, tile_box: Area_box, ext: str = 'png') -> str:
         tile = self.cut_tile(tile_box.x1, tile_box.y1, tile_box.x2 - tile_box.x1,
                              tile_box.y2 - tile_box.y1)
 
