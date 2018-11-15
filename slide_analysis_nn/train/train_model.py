@@ -56,12 +56,20 @@ class Train(GPUSupportMixin):
 
     def _create_generators(self):
         train_datagen = ImageDataGenerator(
-            rescale=1. / 255,
+            samplewise_center=True,
+            samplewise_std_normalization=True,
             shear_range=0.2,
             zoom_range=0.2,
-            horizontal_flip=True)
+            horizontal_flip=True,
+            vertical_flip=True,
+            width_shift_range=0.2,
+            height_shift_range=0.2,
+        )
 
-        test_datagen = ImageDataGenerator(rescale=1. / 255)
+        test_datagen = ImageDataGenerator(
+            samplewise_center=True,
+            samplewise_std_normalization=True,
+        )
 
         train_generator = train_datagen.flow_from_directory(
             TRAIN_DIR_NAME,
@@ -88,8 +96,8 @@ class Train(GPUSupportMixin):
         x = Dropout(0.5)(x)
         predictions = Dense(num_classes, activation='softmax')(x)
 
-        for layer in base_model.layers:
-            layer.trainable = False
+        # for layer in base_model.layers:
+        #     layer.trainable = False
 
         # this is the model we will train
         model = Model(inputs=base_model.input, outputs=predictions)
@@ -162,7 +170,6 @@ class Train(GPUSupportMixin):
             generator=train_generator,
             steps_per_epoch=train_steps,
             epochs=EPOCHS,
-            class_weight={0: 2, 1: 1},
             validation_data=validation_generator,
             validation_steps=val_steps,
             callbacks=callbacks,
