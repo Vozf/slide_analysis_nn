@@ -10,6 +10,7 @@ import tensorflow as tf
 from slide_analysis_nn.prediction import PredictGenerator
 from slide_analysis_nn.prediction import PredictionResult
 from slide_analysis_nn.prediction.settings import MODEL_DOWNLOAD_URL
+from slide_analysis_nn.train.datasets_preparation.settings import SLIDE_IMAGES_DIR
 from slide_analysis_nn.train.settings import (
     SNAPSHOTS_DIR,
     BATCH_SIZE)
@@ -75,13 +76,10 @@ class Predict:
 
 def main():
     predict_example = Predict()
-    prediction = predict_example \
-        .predict_slide(
-        'D:\\projects\\slide_analysis_nn\\slide_analysis_nn\\train\datasets\\source\\slide_images\\Tumor_041.tif',
-        area_to_predict=(74000, 0, 80000, 3000))
+    prediction = predict_example.predict_slide(str(SLIDE_IMAGES_DIR / 'Tumor_041.tif'),
+                                               area_to_predict=(74000, 0, 80000, 3000))
     prediction.create_map()
-    prediction.save_as_asap_annotations(
-        truth_xml_path='D:\\projects\\slide_analysis_nn\\slide_analysis_nn\\train\datasets\\source\\slide_images\\Tumor_041.xml')
+    # prediction.save_as_asap_annotations(truth_xml_path=SLIDE_IMAGES_DIR / 'Tumor_041.xml')
 
     # prediction.create_asap_annotations()
 
