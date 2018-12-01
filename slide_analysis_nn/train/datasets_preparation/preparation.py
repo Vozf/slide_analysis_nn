@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Tuple
 
 import pandas as pd
+from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 from slide_analysis_nn.train.datasets_preparation.settings import (
@@ -114,7 +115,7 @@ class DatasetPreparation:
 
         start = time.time()
 
-        dfs = [self._process_slide(slide_mask) for slide_mask in tqdm(list(slide_mask_paths))]
+        dfs = [self._process_slide(slide_mask) for slide_mask in tqdm(list(slide_mask_paths)[:4])]
 
         df = pd.concat(dfs)
 
@@ -139,16 +140,8 @@ class DatasetPreparation:
 
     @staticmethod
     def _train_test_split(df: pd.DataFrame):
-        unique_slides = df.slide_path.drop_duplicates().values
-        random.shuffle(unique_slides)
-
-        num_train_slides = round(TRAIN_TEST_DATASET_PERCENT * len(unique_slides))
-
-        train_slides = unique_slides[:num_train_slides]
-        test_slides = unique_slides[num_train_slides:]
-
-        train = df.loc[df['slide_path'].isin(train_slides)].copy()
-        test = df.loc[df['slide_path'].isin(test_slides)].copy()
+        train, test = train_test_split(df, test_size=1 - TRAIN_TEST_DATASET_PERCENT)
+        train, test = train.copy(), test.copy()
 
         print('Train data set percentage = {:.2%}'.format(
             len(train) / len(df)))
