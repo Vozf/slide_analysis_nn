@@ -283,7 +283,7 @@ def InceptionV1(include_top=True,
     x = concatenated_block(x, ((128,), (128, 256), (24, 64), (64,)), channel_axis, 'Mixed_4d')
     x = concatenated_block(x, ((112,), (144, 288), (32, 64), (64,)), channel_axis, 'Mixed_4e')
     x = concatenated_block(x, ((256,), (160, 320), (32, 128), (128,)), channel_axis, 'Mixed_4f')
-    x = MaxPooling2D((2, 2), strides=(2, 2), padding='same', name='MaxPool_5a_2x2')(x)
+    x = MaxPooling2D((2, 2), strides=(3, 3), padding='same', name='MaxPool_5a_2x2')(x)
     # Now the '5' level inception units
     x = concatenated_block(x, ((256,), (160, 320), (32, 128), (128,)), channel_axis, 'Mixed_5b')
     x = concatenated_block(x, ((384,), (192, 384), (48, 128), (128,)), channel_axis, 'Mixed_5c')
