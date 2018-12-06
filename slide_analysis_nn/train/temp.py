@@ -185,7 +185,7 @@ def concatenated_block(x, specs, channel_axis, name):
 def InceptionV1(include_top=True,
                 weights=None,
                 input_tensor=None,
-                input_shape=(256, 256, 3),
+                input_shape=(299, 299, 3),
                 pooling=None,
                 classes=2):
     """Instantiates the Inception v1 architecture.
